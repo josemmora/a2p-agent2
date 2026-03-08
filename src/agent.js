@@ -1,8 +1,8 @@
 /**
  * A2P Landing Page Agent
- * Receives GHL webhook → Generates branded, A2P-compliant landing pages via Claude API
+ * Receives GHL webhook → Extracts brand colors from website → Generates branded, A2P-compliant landing pages
  * 
- * SETUP: npm install express axios fs-extra slugify
+ * SETUP: npm install express axios fs-extra slugify cheerio
  */
 
 const express = require("express");
@@ -10,6 +10,7 @@ const axios = require("axios");
 const fs = require("fs-extra");
 const path = require("path");
 const slugify = require("slugify");
+const cheerio = require("cheerio");
 
 const app = express();
 app.use(express.json());
@@ -19,24 +20,33 @@ const PORT = process.env.PORT || 3000;
 const OUTPUT_DIR = path.join(__dirname, "../output");
 
 // ─── MAIN WEBHOOK ENDPOINT ────────────────────────────────────────────────────
-// GHL will POST to this URL when a client completes your onboarding form
 app.post("/webhook/ghl-onboarding", async (req, res) => {
   try {
     console.log("📥 GHL Webhook received:", JSON.stringify(req.body, null, 2));
 
-    // Parse GHL form fields (map these to your actual GHL field names)
     const clientData = parseGHLPayload(req.body);
-
     console.log(`🚀 Generating pages for: ${clientData.businessName}`);
 
-    // Run the agent — all 3 pages in parallel
+    // Extract brand colors from their website automatically
+    if (clientData.website) {
+      console.log(`🎨 Extracting brand colors from: ${clientData.website}`);
+      const colors = await extractBrandColors(clientData.website);
+      clientData.primaryColor = colors.primary;
+      clientData.accentColor = colors.accent;
+      console.log(`✅ Colors extracted — Primary: ${colors.primary} Accent: ${colors.accent}`);
+    } else {
+      // Fallback colors if no website
+      clientData.primaryColor = "#2563eb";
+      clientData.accentColor = "#06b6d4";
+    }
+
+    // Generate all 3 pages in parallel
     const [landingPage, privacyPolicy, smsTerms] = await Promise.all([
       generateLandingPage(clientData),
       generatePrivacyPolicy(clientData),
       generateSMSTerms(clientData),
     ]);
 
-    // Save files to disk (or push to GitHub / Vercel — see deploy.js)
     const slug = slugify(clientData.businessName, { lower: true, strict: true });
     const clientDir = path.join(OUTPUT_DIR, slug);
     await fs.ensureDir(clientDir);
@@ -47,47 +57,122 @@ app.post("/webhook/ghl-onboarding", async (req, res) => {
 
     console.log(`✅ Pages saved to /output/${slug}/`);
 
-    // Respond to GHL so it knows the webhook succeeded
     res.json({
       success: true,
       slug,
+      colors: {
+        primary: clientData.primaryColor,
+        accent: clientData.accentColor,
+      },
       pages: ["index.html", "privacy-policy.html", "terms.html"],
       message: `Landing pages generated for ${clientData.businessName}`,
     });
 
-    // Optionally: trigger GHL automation to notify client (see README)
   } catch (err) {
     console.error("❌ Agent error:", err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
+// ─── EXTRACT BRAND COLORS FROM WEBSITE ───────────────────────────────────────
+// Fetches the client's website and pulls the most dominant colors from CSS
+async function extractBrandColors(websiteUrl) {
+  try {
+    // Make sure URL has https://
+    const url = websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`;
+
+    const response = await axios.get(url, {
+      timeout: 8000,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; A2PAgent/1.0)",
+      },
+    });
+
+    const html = response.data;
+    const $ = cheerio.load(html);
+
+    // Collect all hex colors from inline styles and style tags
+    const colorRegex = /#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})\b/g;
+    const allColors = [];
+
+    // Check style tags
+    $("style").each((_, el) => {
+      const matches = $(el).html().match(colorRegex) || [];
+      allColors.push(...matches);
+    });
+
+    // Check inline styles
+    $("[style]").each((_, el) => {
+      const matches = ($(el).attr("style") || "").match(colorRegex) || [];
+      allColors.push(...matches);
+    });
+
+    // Check meta theme-color (most reliable brand color indicator)
+    const themeColor = $('meta[name="theme-color"]').attr("content");
+    if (themeColor && themeColor.startsWith("#")) {
+      allColors.unshift(themeColor); // Put it first — highest priority
+    }
+
+    // Filter out blacks, whites, and grays — keep real brand colors
+    const brandColors = allColors.filter((color) => {
+      const hex = color.replace("#", "");
+      const full = hex.length === 3
+        ? hex.split("").map((c) => c + c).join("")
+        : hex;
+      const r = parseInt(full.slice(0, 2), 16);
+      const g = parseInt(full.slice(2, 4), 16);
+      const b = parseInt(full.slice(4, 6), 16);
+      const isGray = Math.abs(r - g) < 20 && Math.abs(g - b) < 20;
+      const isWhite = r > 240 && g > 240 && b > 240;
+      const isBlack = r < 20 && g < 20 && b < 20;
+      return !isGray && !isWhite && !isBlack;
+    });
+
+    // Count frequency of each color
+    const colorCount = {};
+    brandColors.forEach((c) => {
+      const normalized = c.toLowerCase();
+      colorCount[normalized] = (colorCount[normalized] || 0) + 1;
+    });
+
+    // Sort by frequency
+    const sorted = Object.entries(colorCount)
+      .sort((a, b) => b[1] - a[1])
+      .map(([color]) => color);
+
+    const primary = sorted[0] || "#2563eb";
+    const accent = sorted[1] || "#06b6d4";
+
+    return { primary, accent };
+
+  } catch (err) {
+    console.log(`⚠️ Could not extract colors from website: ${err.message}. Using defaults.`);
+    // If website fetch fails, use Claude to suggest colors based on industry
+    return { primary: "#2563eb", accent: "#06b6d4" };
+  }
+}
+
 // ─── PARSE GHL PAYLOAD ────────────────────────────────────────────────────────
-// GHL sends form data in different formats depending on version.
-// Map YOUR GHL custom field names/IDs here.
 function parseGHLPayload(body) {
-  // GHL can send data nested under contact, form_data, or custom_fields
   const contact = body.contact || body;
   const customFields = body.customFields || body.custom_fields || {};
 
   return {
-    businessName:     customFields.business_name     || contact.companyName || "Your Business",
-    industry:         customFields.industry           || "General",
-    tagline:          customFields.tagline            || "",
-    primaryColor:     customFields.primary_color      || "#2563eb",
-    accentColor:      customFields.accent_color       || "#06b6d4",
-    logoUrl:          customFields.logo_url           || "",
-    smsNumber:        customFields.sms_number         || contact.phone || "",
-    email:            customFields.business_email     || contact.email || "",
-    website:          customFields.website            || "",
-    address:          customFields.business_address   || "",
-    city:             customFields.city               || "",
-    state:            customFields.state              || "",
-    zip:              customFields.zip                || "",
-    contactName:      contact.firstName + " " + contact.lastName || "",
-    messageFrequency: customFields.message_frequency  || "up to 4 messages per month",
-    serviceDesc:      customFields.service_description || "",
-    ctaText:          customFields.cta_text           || "Get a Free Consultation",
+    businessName:     customFields.legal_entity_name    || contact.companyName  || "Your Business",
+    industry:         customFields.business_type         || "General",
+    tagline:          customFields.do_you_have_slogans   || "",
+    website:          customFields.business_website      || contact.website      || "",
+    logoUrl:          customFields.company_logo          || "",
+    smsNumber:        customFields.business_phone_number || contact.phone        || "",
+    email:            customFields.business_email        || contact.email        || "",
+    address:          customFields.business_address      || "",
+    contactName:      (contact.firstName || "") + " " + (contact.lastName || ""),
+    serviceDesc:      customFields.detailed_list_of_your_services || "",
+    messageFrequency: customFields.message_frequency     || "up to 4 messages per month",
+    ctaText:          customFields.cta_text              || "Get a Free Consultation",
+    // Colors will be filled in by extractBrandColors()
+    primaryColor:     "#2563eb",
+    accentColor:      "#06b6d4",
   };
 }
 
@@ -108,7 +193,7 @@ EMAIL: ${client.email}
 SERVICE DESCRIPTION: ${client.serviceDesc || "Professional " + client.industry + " services"}
 CTA TEXT: ${client.ctaText}
 MESSAGE FREQUENCY: ${client.messageFrequency}
-ADDRESS: ${client.address}, ${client.city}, ${client.state} ${client.zip}
+ADDRESS: ${client.address}
 
 REQUIREMENTS — every single one is MANDATORY:
 1. Full HTML file with embedded CSS and JS (no external dependencies except Google Fonts)
@@ -116,14 +201,14 @@ REQUIREMENTS — every single one is MANDATORY:
 3. Hero section with branded gradient background using the exact hex colors provided
 4. Lead capture form with: First Name, Last Name, Mobile Phone, Email
 5. TCPA-compliant SMS consent block — must include ALL of these:
-   - "By submitting this form, you authorize [BUSINESS] to send SMS messages..."  
+   - "By submitting this form, you authorize [BUSINESS] to send SMS messages..."
    - "Message frequency: [FREQUENCY]. Msg & data rates may apply."
    - "Reply STOP to opt out. Reply HELP for help."
    - "Consent is not a condition of any purchase."
    - Links to privacy-policy.html and terms.html
 6. Compliance badges: "TCPA Compliant", "A2P 10DLC Registered", "Data Secure"
 7. Footer with: copyright, Privacy Policy link, Terms link, SMS Terms link, "Msg & data rates may apply"
-8. Mobile responsive — works on all screen sizes
+8. Mobile responsive layout
 9. Professional, conversion-optimized design using the brand colors
 
 Output ONLY the complete HTML — no explanation, no markdown, no code fences.`;
@@ -135,33 +220,22 @@ Output ONLY the complete HTML — no explanation, no markdown, no code fences.`;
 async function generatePrivacyPolicy(client) {
   const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
-  const prompt = `Generate a complete, legally sound Privacy Policy HTML page for:
+  const prompt = `Generate a complete Privacy Policy HTML page for:
 
 BUSINESS: ${client.businessName}
 EMAIL: ${client.email}
 WEBSITE: ${client.website || "our website"}
-ADDRESS: ${client.address}, ${client.city}, ${client.state} ${client.zip}
+ADDRESS: ${client.address}
 EFFECTIVE DATE: ${today}
 
-The privacy policy MUST cover:
-1. Information we collect (name, phone, email, SMS opt-in data)
-2. How we use information (SMS communications, appointment reminders, promotions)
-3. SMS/Text messaging data — how it is collected, stored, never sold to third parties
-4. IMPORTANT: "Mobile information will not be shared with third parties/affiliates for marketing/promotional purposes. All the above categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties."
-5. Cookies and tracking
-6. Third-party service providers (Twilio, CRMs, etc.)
-7. Data retention and security
-8. CCPA rights (California residents)
-9. GDPR rights (EU residents if applicable)
-10. Children's privacy (no data from under 13)
-11. How to opt out of SMS: reply STOP
-12. Contact information for privacy requests
-13. Right to access, delete, correct data
+Must cover: data collection, SMS data usage, TCPA consent, third-party sharing policy,
+CCPA rights, GDPR rights, data retention, opt-out process, contact information.
+IMPORTANT: Include "Mobile information will not be shared with third parties/affiliates for marketing/promotional purposes."
 
-Style: Clean, professional HTML with embedded CSS. Use brand color ${client.primaryColor} for headings and links.
-Navigation link back to index.html.
+Style: Clean HTML with embedded CSS. Use ${client.primaryColor} for headings.
+Include navigation link back to index.html.
 
-Output ONLY the complete HTML file — no explanation, no markdown.`;
+Output ONLY the complete HTML — no explanation, no markdown.`;
 
   return callClaude(prompt);
 }
@@ -177,24 +251,14 @@ SMS NUMBER: ${client.smsNumber}
 EMAIL: ${client.email}
 MESSAGE FREQUENCY: ${client.messageFrequency}
 EFFECTIVE DATE: ${today}
-ADDRESS: ${client.address}, ${client.city}, ${client.state} ${client.zip}
+ADDRESS: ${client.address}
 
-MANDATORY A2P/CTIA compliance elements — all required:
-1. Program description: what SMS messages will be sent and why
-2. Message frequency: "${client.messageFrequency}"
-3. "Message and data rates may apply"
-4. How to opt out: "Text STOP to [number] to unsubscribe at any time"
-5. How to get help: "Text HELP to [number] or email [email]"
-6. Supported carriers list (AT&T, Verizon, T-Mobile, etc.)
-7. No mobile information shared with third parties for marketing — VERBATIM: "Mobile information will not be shared with third parties/affiliates for marketing/promotional purposes."
-8. Consent is not a condition of purchase
-9. How opt-out confirmation message works
-10. Limitation of liability for carrier issues
-11. Link back to Privacy Policy (privacy-policy.html)
-12. Contact information
+Must include: program description, message frequency, "Msg & data rates may apply",
+STOP/HELP keywords, supported carriers, opt-out confirmation, limitation of liability.
+IMPORTANT: Include "Mobile information will not be shared with third parties for marketing purposes."
 
-Style: Clean, professional HTML with embedded CSS. Use brand color ${client.primaryColor}.
-Navigation link back to index.html.
+Style: Clean HTML with embedded CSS. Use ${client.primaryColor} for headings.
+Include navigation link back to index.html.
 
 Output ONLY the complete HTML — no explanation, no markdown.`;
 
@@ -218,7 +282,6 @@ async function callClaude(prompt) {
       },
     }
   );
-
   return response.data.content[0].text;
 }
 
