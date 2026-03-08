@@ -1,8 +1,7 @@
 /**
  * A2P Landing Page Agent
  * Receives GHL webhook → Extracts brand colors from website → Generates branded, A2P-compliant landing pages
- * 
- * SETUP: npm install express axios fs-extra slugify cheerio
+ * SETUP: npm install express axios fs-extra slugify
  */
 
 const express = require("express");
@@ -10,7 +9,6 @@ const axios = require("axios");
 const fs = require("fs-extra");
 const path = require("path");
 const slugify = require("slugify");
-const cheerio = require("cheerio");
 
 const app = express();
 app.use(express.json());
@@ -33,11 +31,7 @@ app.post("/webhook/ghl-onboarding", async (req, res) => {
       const colors = await extractBrandColors(clientData.website);
       clientData.primaryColor = colors.primary;
       clientData.accentColor = colors.accent;
-      console.log(`✅ Colors extracted — Primary: ${colors.primary} Accent: ${colors.accent}`);
-    } else {
-      // Fallback colors if no website
-      clientData.primaryColor = "#2563eb";
-      clientData.accentColor = "#06b6d4";
+      console.log(`✅ Colors — Primary: ${colors.primary} Accent: ${colors.accent}`);
     }
 
     // Generate all 3 pages in parallel
@@ -60,10 +54,7 @@ app.post("/webhook/ghl-onboarding", async (req, res) => {
     res.json({
       success: true,
       slug,
-      colors: {
-        primary: clientData.primaryColor,
-        accent: clientData.accentColor,
-      },
+      colors: { primary: clientData.primaryColor, accent: clientData.accentColor },
       pages: ["index.html", "privacy-policy.html", "terms.html"],
       message: `Landing pages generated for ${clientData.businessName}`,
     });
@@ -75,79 +66,63 @@ app.post("/webhook/ghl-onboarding", async (req, res) => {
 });
 
 // ─── EXTRACT BRAND COLORS FROM WEBSITE ───────────────────────────────────────
-// Fetches the client's website and pulls the most dominant colors from CSS
+// Pure regex — no cheerio or undici needed
 async function extractBrandColors(websiteUrl) {
   try {
-    // Make sure URL has https://
     const url = websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`;
 
     const response = await axios.get(url, {
       timeout: 8000,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; A2PAgent/1.0)",
-      },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; A2PAgent/1.0)" },
     });
 
     const html = response.data;
-    const $ = cheerio.load(html);
 
-    // Collect all hex colors from inline styles and style tags
-    const colorRegex = /#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})\b/g;
+    // Check meta theme-color first — most reliable brand color
+    const themeMatch = html.match(/name=["']theme-color["'][^>]*content=["'](#[0-9A-Fa-f]{6})["']/i)
+      || html.match(/content=["'](#[0-9A-Fa-f]{6})["'][^>]*name=["']theme-color["']/i);
+
+    // Extract all 6-digit hex colors from raw HTML
+    const colorRegex = /#([0-9A-Fa-f]{6})\b/g;
     const allColors = [];
+    let match;
 
-    // Check style tags
-    $("style").each((_, el) => {
-      const matches = $(el).html().match(colorRegex) || [];
-      allColors.push(...matches);
-    });
-
-    // Check inline styles
-    $("[style]").each((_, el) => {
-      const matches = ($(el).attr("style") || "").match(colorRegex) || [];
-      allColors.push(...matches);
-    });
-
-    // Check meta theme-color (most reliable brand color indicator)
-    const themeColor = $('meta[name="theme-color"]').attr("content");
-    if (themeColor && themeColor.startsWith("#")) {
-      allColors.unshift(themeColor); // Put it first — highest priority
+    while ((match = colorRegex.exec(html)) !== null) {
+      allColors.push("#" + match[1]);
     }
 
-    // Filter out blacks, whites, and grays — keep real brand colors
+    if (themeMatch) allColors.unshift(themeMatch[1]);
+
+    // Filter out blacks, whites, and grays
     const brandColors = allColors.filter((color) => {
       const hex = color.replace("#", "");
-      const full = hex.length === 3
-        ? hex.split("").map((c) => c + c).join("")
-        : hex;
-      const r = parseInt(full.slice(0, 2), 16);
-      const g = parseInt(full.slice(2, 4), 16);
-      const b = parseInt(full.slice(4, 6), 16);
-      const isGray = Math.abs(r - g) < 20 && Math.abs(g - b) < 20;
-      const isWhite = r > 240 && g > 240 && b > 240;
-      const isBlack = r < 20 && g < 20 && b < 20;
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      const isGray = Math.abs(r - g) < 25 && Math.abs(g - b) < 25;
+      const isWhite = r > 235 && g > 235 && b > 235;
+      const isBlack = r < 25 && g < 25 && b < 25;
       return !isGray && !isWhite && !isBlack;
     });
 
-    // Count frequency of each color
+    // Count frequency — most used = primary brand color
     const colorCount = {};
     brandColors.forEach((c) => {
-      const normalized = c.toLowerCase();
-      colorCount[normalized] = (colorCount[normalized] || 0) + 1;
+      const n = c.toLowerCase();
+      colorCount[n] = (colorCount[n] || 0) + 1;
     });
 
-    // Sort by frequency
     const sorted = Object.entries(colorCount)
       .sort((a, b) => b[1] - a[1])
       .map(([color]) => color);
 
-    const primary = sorted[0] || "#2563eb";
-    const accent = sorted[1] || "#06b6d4";
-
-    return { primary, accent };
+    return {
+      primary: sorted[0] || "#2563eb",
+      accent: sorted[1] || "#06b6d4",
+    };
 
   } catch (err) {
-    console.log(`⚠️ Could not extract colors from website: ${err.message}. Using defaults.`);
-    // If website fetch fails, use Claude to suggest colors based on industry
+    console.log(`⚠️ Could not extract colors: ${err.message}. Using defaults.`);
     return { primary: "#2563eb", accent: "#06b6d4" };
   }
 }
@@ -158,19 +133,18 @@ function parseGHLPayload(body) {
   const customFields = body.customFields || body.custom_fields || {};
 
   return {
-    businessName:     customFields.legal_entity_name    || contact.companyName  || "Your Business",
-    industry:         customFields.business_type         || "General",
-    tagline:          customFields.do_you_have_slogans   || "",
-    website:          customFields.business_website      || contact.website      || "",
-    logoUrl:          customFields.company_logo          || "",
-    smsNumber:        customFields.business_phone_number || contact.phone        || "",
-    email:            customFields.business_email        || contact.email        || "",
-    address:          customFields.business_address      || "",
+    businessName:     customFields.legal_entity_name             || contact.companyName || "Your Business",
+    industry:         customFields.business_type                  || "General",
+    tagline:          customFields.do_you_have_slogans            || "",
+    website:          customFields.business_website               || contact.website     || "",
+    logoUrl:          customFields.company_logo                   || "",
+    smsNumber:        customFields.business_phone_number          || contact.phone       || "",
+    email:            customFields.business_email                 || contact.email       || "",
+    address:          customFields.business_address               || "",
     contactName:      (contact.firstName || "") + " " + (contact.lastName || ""),
     serviceDesc:      customFields.detailed_list_of_your_services || "",
     messageFrequency: "daily messages",
-    ctaText:          customFields.cta_text              || "Get a Free Consultation",
-    // Colors will be filled in by extractBrandColors()
+    ctaText:          customFields.cta_text                       || "Get a Free Consultation",
     primaryColor:     "#2563eb",
     accentColor:      "#06b6d4",
   };
@@ -198,18 +172,18 @@ ADDRESS: ${client.address}
 REQUIREMENTS — every single one is MANDATORY:
 1. Full HTML file with embedded CSS and JS (no external dependencies except Google Fonts)
 2. Navigation with logo, links to privacy-policy.html and terms.html
-3. Hero section with branded gradient background using the exact hex colors provided
+3. Hero section with branded gradient using the exact hex colors provided
 4. Lead capture form with: First Name, Last Name, Mobile Phone, Email
-5. TCPA-compliant SMS consent block — must include ALL of these:
+5. TCPA-compliant SMS consent block with ALL of these:
    - "By submitting this form, you authorize [BUSINESS] to send SMS messages..."
    - "Message frequency: [FREQUENCY]. Msg & data rates may apply."
    - "Reply STOP to opt out. Reply HELP for help."
    - "Consent is not a condition of any purchase."
    - Links to privacy-policy.html and terms.html
 6. Compliance badges: "TCPA Compliant", "A2P 10DLC Registered", "Data Secure"
-7. Footer with: copyright, Privacy Policy link, Terms link, SMS Terms link, "Msg & data rates may apply"
+7. Footer with copyright, Privacy Policy, Terms, SMS Terms, "Msg & data rates may apply"
 8. Mobile responsive layout
-9. Professional, conversion-optimized design using the brand colors
+9. Professional conversion-optimized design using the brand colors
 
 Output ONLY the complete HTML — no explanation, no markdown, no code fences.`;
 
@@ -228,7 +202,7 @@ WEBSITE: ${client.website || "our website"}
 ADDRESS: ${client.address}
 EFFECTIVE DATE: ${today}
 
-Must cover: data collection, SMS data usage, TCPA consent, third-party sharing policy,
+Must cover: data collection, SMS data usage, TCPA consent, third-party sharing,
 CCPA rights, GDPR rights, data retention, opt-out process, contact information.
 IMPORTANT: Include "Mobile information will not be shared with third parties/affiliates for marketing/promotional purposes."
 
@@ -290,8 +264,8 @@ app.get("/health", (req, res) => res.json({ status: "ok", agent: "A2P Landing Pa
 
 app.listen(PORT, () => {
   console.log(`\n🚀 A2P Agent running on port ${PORT}`);
-  console.log(`📡 Webhook URL: http://localhost:${PORT}/webhook/ghl-onboarding`);
-  console.log(`✅ Health check: http://localhost:${PORT}/health\n`);
+  console.log(`📡 Webhook: http://localhost:${PORT}/webhook/ghl-onboarding`);
+  console.log(`✅ Health: http://localhost:${PORT}/health\n`);
 });
 
 module.exports = app;
