@@ -93,6 +93,7 @@ async function deployToVercel(slug, indexHtml, privacyHtml, termsHtml) {
           outputDirectory: null,
         },
         target: "production",
+        public: true,
       },
       {
         headers: {
