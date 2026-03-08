@@ -194,40 +194,58 @@ function parseGHLPayload(body) {
 
 // ─── GENERATE LANDING PAGE ────────────────────────────────────────────────────
 async function generateLandingPage(client) {
-  const prompt = `You are an expert landing page developer specializing in A2P SMS compliance and conversion optimization.
+  const prompt = `You are a world-class landing page designer and conversion rate optimization expert. You build stunning, high-converting pages that look like they cost $10,000 to design.
 
-Generate a complete, production-ready HTML landing page for this client:
+Generate a STUNNING, production-ready HTML landing page for this client. This page must look PREMIUM — not like a template.
 
-BUSINESS: ${client.businessName}
-INDUSTRY: ${client.industry}
-TAGLINE: ${client.tagline || "Generate a compelling tagline for this industry"}
-PRIMARY COLOR: ${client.primaryColor}
-ACCENT COLOR: ${client.accentColor}
-LOGO URL: ${client.logoUrl || "none - use text logo"}
-SMS NUMBER: ${client.smsNumber}
-EMAIL: ${client.email}
-SERVICE DESCRIPTION: ${client.serviceDesc || "Professional " + client.industry + " services"}
-CTA TEXT: ${client.ctaText}
-MESSAGE FREQUENCY: ${client.messageFrequency}
-ADDRESS: ${client.address}
+CLIENT DATA:
+- Business: ${client.businessName}
+- Industry: ${client.industry}
+- Tagline: ${client.tagline || "Generate a powerful, benefit-driven tagline"}
+- Primary Color: ${client.primaryColor}
+- Accent Color: ${client.accentColor}
+- Logo URL: ${client.logoUrl || "none"}
+- Phone: ${client.smsNumber}
+- Email: ${client.email}
+- Services: ${client.serviceDesc || "Professional " + client.industry + " services"}
+- CTA: ${client.ctaText}
+- Message Frequency: ${client.messageFrequency}
+- Address: ${client.address}
 
-REQUIREMENTS — every single one is MANDATORY:
-1. Full HTML file with embedded CSS and JS (no external dependencies except Google Fonts)
-2. Navigation with logo, links to privacy-policy.html and terms.html
-3. Hero section with branded gradient using the exact hex colors provided
-4. Lead capture form with: First Name, Last Name, Mobile Phone, Email
-5. TCPA-compliant SMS consent block with ALL of these:
-   - "By submitting this form, you authorize [BUSINESS] to send SMS messages..."
-   - "Message frequency: [FREQUENCY]. Msg & data rates may apply."
-   - "Reply STOP to opt out. Reply HELP for help."
-   - "Consent is not a condition of any purchase."
-   - Links to privacy-policy.html and terms.html
-6. Compliance badges: "TCPA Compliant", "A2P 10DLC Registered", "Data Secure"
-7. Footer with copyright, Privacy Policy, Terms, SMS Terms, "Msg & data rates may apply"
-8. Mobile responsive layout
-9. Professional conversion-optimized design using the brand colors
+DESIGN REQUIREMENTS — make it look like a $10k agency page:
+1. Use Google Fonts — pick a premium font pairing (e.g. Playfair Display + Inter, or Montserrat + Open Sans)
+2. Hero section: full viewport height, bold headline, subheadline, animated gradient background using brand colors, floating CTA button with hover effects
+3. Trust bar below hero: show "500+ Clients Served", "5-Star Rated", "A2P Compliant", "Licensed & Insured" with icons
+4. Services section: dark background, card grid with hover animations, icons, and descriptions
+5. Social proof section: 2-3 fake but realistic testimonials with star ratings and client names from the industry
+6. Lead capture form: centered, clean card design with shadow, rounded inputs, gradient submit button
+7. Sticky navigation with blur backdrop effect
+8. Smooth scroll animations using Intersection Observer API
+9. Mobile-first fully responsive layout
+10. Micro-interactions: button hover states, input focus effects, card lifts on hover
 
-Output ONLY the complete HTML — no explanation, no markdown, no code fences.`;
+CONVERSION REQUIREMENTS:
+- Headline must communicate the #1 benefit immediately
+- Use urgency: "Limited spots available this month"
+- Form headline: "Get Your Free Strategy Call" not just "Contact Us"
+- Include a value proposition checklist next to or above the form
+- CTA button must use contrasting color with arrow icon
+
+A2P COMPLIANCE — ALL of these are MANDATORY in the form section:
+- "By submitting this form, you authorize ${client.businessName} to send SMS messages to the mobile number provided."
+- "Message frequency: ${client.messageFrequency}. Msg & data rates may apply."
+- "Reply STOP to opt out. Reply HELP for help."
+- "Consent is not a condition of any purchase."
+- Links to privacy-policy.html and terms.html
+- Compliance badges: "TCPA Compliant" | "A2P 10DLC Registered" | "Data Secure" | "SSL Protected"
+
+FOOTER:
+- Dark background matching brand colors
+- Logo text, tagline, quick links, contact info
+- Privacy Policy | Terms | SMS Terms links
+- Copyright and "Msg & data rates may apply"
+
+Output ONLY the complete HTML with all CSS and JS embedded — no explanation, no markdown, no code fences. Make it breathtaking.`;
 
   return callClaude(prompt);
 }
