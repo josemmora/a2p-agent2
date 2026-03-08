@@ -168,7 +168,7 @@ function parseGHLPayload(body) {
     address:          customFields.business_address      || "",
     contactName:      (contact.firstName || "") + " " + (contact.lastName || ""),
     serviceDesc:      customFields.detailed_list_of_your_services || "",
-    messageFrequency: customFields.message_frequency     || "up to 4 messages per month",
+    messageFrequency: "daily messages",
     ctaText:          customFields.cta_text              || "Get a Free Consultation",
     // Colors will be filled in by extractBrandColors()
     primaryColor:     "#2563eb",
