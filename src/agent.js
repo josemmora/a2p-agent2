@@ -1,6 +1,6 @@
 /**
  * A2P Landing Page Agent
- * Receives GHL webhook → Extracts brand colors from website → Generates branded, A2P-compliant landing pages
+ * GHL Webhook → Extract Colors → Generate Pages → Auto-Deploy to Vercel
  * SETUP: npm install express axios fs-extra slugify
  */
 
@@ -14,8 +14,9 @@ const app = express();
 app.use(express.json());
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const PORT = process.env.PORT || 3000;
-const OUTPUT_DIR = path.join(__dirname, "../output");
+const VERCEL_TOKEN      = process.env.VERCEL_TOKEN;
+const PORT              = process.env.PORT || 3000;
+const OUTPUT_DIR        = path.join(__dirname, "../output");
 
 // ─── MAIN WEBHOOK ENDPOINT ────────────────────────────────────────────────────
 app.post("/webhook/ghl-onboarding", async (req, res) => {
@@ -25,38 +26,47 @@ app.post("/webhook/ghl-onboarding", async (req, res) => {
     const clientData = parseGHLPayload(req.body);
     console.log(`🚀 Generating pages for: ${clientData.businessName}`);
 
-    // Extract brand colors from their website automatically
+    // Step 1 — Extract brand colors from their website
     if (clientData.website) {
-      console.log(`🎨 Extracting brand colors from: ${clientData.website}`);
+      console.log(`🎨 Extracting colors from: ${clientData.website}`);
       const colors = await extractBrandColors(clientData.website);
       clientData.primaryColor = colors.primary;
-      clientData.accentColor = colors.accent;
+      clientData.accentColor  = colors.accent;
       console.log(`✅ Colors — Primary: ${colors.primary} Accent: ${colors.accent}`);
     }
 
-    // Generate all 3 pages in parallel
+    // Step 2 — Generate all 3 pages in parallel
+    console.log("⚙️ Generating pages with Claude...");
     const [landingPage, privacyPolicy, smsTerms] = await Promise.all([
       generateLandingPage(clientData),
       generatePrivacyPolicy(clientData),
       generateSMSTerms(clientData),
     ]);
 
+    // Step 3 — Save locally
     const slug = slugify(clientData.businessName, { lower: true, strict: true });
     const clientDir = path.join(OUTPUT_DIR, slug);
     await fs.ensureDir(clientDir);
-
-    await fs.writeFile(path.join(clientDir, "index.html"), landingPage);
+    await fs.writeFile(path.join(clientDir, "index.html"),          landingPage);
     await fs.writeFile(path.join(clientDir, "privacy-policy.html"), privacyPolicy);
-    await fs.writeFile(path.join(clientDir, "terms.html"), smsTerms);
+    await fs.writeFile(path.join(clientDir, "terms.html"),          smsTerms);
+    console.log(`✅ Pages saved locally to /output/${slug}/`);
 
-    console.log(`✅ Pages saved to /output/${slug}/`);
+    // Step 4 — Auto-deploy to Vercel
+    let liveUrl = null;
+    if (VERCEL_TOKEN) {
+      console.log("🚀 Deploying to Vercel...");
+      liveUrl = await deployToVercel(slug, landingPage, privacyPolicy, smsTerms);
+      console.log(`🌐 Live URL: ${liveUrl}`);
+    }
 
     res.json({
       success: true,
       slug,
+      liveUrl,
       colors: { primary: clientData.primaryColor, accent: clientData.accentColor },
-      pages: ["index.html", "privacy-policy.html", "terms.html"],
-      message: `Landing pages generated for ${clientData.businessName}`,
+      pages:  ["index.html", "privacy-policy.html", "terms.html"],
+      message: `Pages generated and deployed for ${clientData.businessName}`,
     });
 
   } catch (err) {
@@ -65,8 +75,44 @@ app.post("/webhook/ghl-onboarding", async (req, res) => {
   }
 });
 
+// ─── DEPLOY TO VERCEL ─────────────────────────────────────────────────────────
+async function deployToVercel(slug, indexHtml, privacyHtml, termsHtml) {
+  try {
+    const response = await axios.post(
+      "https://api.vercel.com/v13/deployments",
+      {
+        name: `a2p-${slug}`,
+        files: [
+          { file: "index.html",          data: indexHtml,    encoding: "utf8" },
+          { file: "privacy-policy.html", data: privacyHtml,  encoding: "utf8" },
+          { file: "terms.html",          data: termsHtml,    encoding: "utf8" },
+        ],
+        projectSettings: {
+          framework: null,
+          buildCommand: null,
+          outputDirectory: null,
+        },
+        target: "production",
+      },
+      {
+        headers: {
+          Authorization:  `Bearer ${VERCEL_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const url = `https://${response.data.url}`;
+    console.log(`✅ Vercel deployment successful: ${url}`);
+    return url;
+
+  } catch (err) {
+    console.error("❌ Vercel deploy error:", err.response?.data || err.message);
+    return null;
+  }
+}
+
 // ─── EXTRACT BRAND COLORS FROM WEBSITE ───────────────────────────────────────
-// Pure regex — no cheerio or undici needed
 async function extractBrandColors(websiteUrl) {
   try {
     const url = websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`;
@@ -78,13 +124,11 @@ async function extractBrandColors(websiteUrl) {
 
     const html = response.data;
 
-    // Check meta theme-color first — most reliable brand color
     const themeMatch = html.match(/name=["']theme-color["'][^>]*content=["'](#[0-9A-Fa-f]{6})["']/i)
       || html.match(/content=["'](#[0-9A-Fa-f]{6})["'][^>]*name=["']theme-color["']/i);
 
-    // Extract all 6-digit hex colors from raw HTML
     const colorRegex = /#([0-9A-Fa-f]{6})\b/g;
-    const allColors = [];
+    const allColors  = [];
     let match;
 
     while ((match = colorRegex.exec(html)) !== null) {
@@ -93,19 +137,17 @@ async function extractBrandColors(websiteUrl) {
 
     if (themeMatch) allColors.unshift(themeMatch[1]);
 
-    // Filter out blacks, whites, and grays
     const brandColors = allColors.filter((color) => {
       const hex = color.replace("#", "");
       const r = parseInt(hex.slice(0, 2), 16);
       const g = parseInt(hex.slice(2, 4), 16);
       const b = parseInt(hex.slice(4, 6), 16);
-      const isGray = Math.abs(r - g) < 25 && Math.abs(g - b) < 25;
+      const isGray  = Math.abs(r - g) < 25 && Math.abs(g - b) < 25;
       const isWhite = r > 235 && g > 235 && b > 235;
-      const isBlack = r < 25 && g < 25 && b < 25;
+      const isBlack = r < 25  && g < 25  && b < 25;
       return !isGray && !isWhite && !isBlack;
     });
 
-    // Count frequency — most used = primary brand color
     const colorCount = {};
     brandColors.forEach((c) => {
       const n = c.toLowerCase();
@@ -118,7 +160,7 @@ async function extractBrandColors(websiteUrl) {
 
     return {
       primary: sorted[0] || "#2563eb",
-      accent: sorted[1] || "#06b6d4",
+      accent:  sorted[1] || "#06b6d4",
     };
 
   } catch (err) {
@@ -129,7 +171,7 @@ async function extractBrandColors(websiteUrl) {
 
 // ─── PARSE GHL PAYLOAD ────────────────────────────────────────────────────────
 function parseGHLPayload(body) {
-  const contact = body.contact || body;
+  const contact      = body.contact || body;
   const customFields = body.customFields || body.custom_fields || {};
 
   return {
@@ -250,9 +292,9 @@ async function callClaude(prompt) {
     },
     {
       headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
+        "x-api-key":          ANTHROPIC_API_KEY,
+        "anthropic-version":  "2023-06-01",
+        "content-type":       "application/json",
       },
     }
   );
