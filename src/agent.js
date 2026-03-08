@@ -1,17 +1,17 @@
 /**
- * A2P Landing Page Agent
+ * A2P Landing Page Agent v2.0
  * GHL Webhook → Extract Colors → Generate Pages → Auto-Deploy to Vercel
  * SETUP: npm install express axios fs-extra slugify
  */
 
 const express = require("express");
-const axios = require("axios");
-const fs = require("fs-extra");
-const path = require("path");
-const slugify = require("slugify");
+const axios   = require("axios");
+const fs      = require("fs-extra");
+const path    = require("path");
+const slugify  = require("slugify");
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const VERCEL_TOKEN      = process.env.VERCEL_TOKEN;
@@ -26,13 +26,15 @@ app.post("/webhook/ghl-onboarding", async (req, res) => {
     const clientData = parseGHLPayload(req.body);
     console.log(`🚀 Generating pages for: ${clientData.businessName}`);
 
-    // Step 1 — Extract brand colors from their website
+    // Step 1 — Extract brand colors from website
     if (clientData.website) {
       console.log(`🎨 Extracting colors from: ${clientData.website}`);
       const colors = await extractBrandColors(clientData.website);
       clientData.primaryColor = colors.primary;
       clientData.accentColor  = colors.accent;
       console.log(`✅ Colors — Primary: ${colors.primary} Accent: ${colors.accent}`);
+    } else {
+      console.log("⚠️ No website URL provided — using default colors");
     }
 
     // Step 2 — Generate all 3 pages in parallel
@@ -50,9 +52,9 @@ app.post("/webhook/ghl-onboarding", async (req, res) => {
     await fs.writeFile(path.join(clientDir, "index.html"),          landingPage);
     await fs.writeFile(path.join(clientDir, "privacy-policy.html"), privacyPolicy);
     await fs.writeFile(path.join(clientDir, "terms.html"),          smsTerms);
-    console.log(`✅ Pages saved locally to /output/${slug}/`);
+    console.log(`✅ Pages saved to /output/${slug}/`);
 
-    // Step 4 — Auto-deploy to Vercel
+    // Step 4 — Deploy to Vercel
     let liveUrl = null;
     if (VERCEL_TOKEN) {
       console.log("🚀 Deploying to Vercel...");
@@ -64,8 +66,8 @@ app.post("/webhook/ghl-onboarding", async (req, res) => {
       success: true,
       slug,
       liveUrl,
-      colors: { primary: clientData.primaryColor, accent: clientData.accentColor },
-      pages:  ["index.html", "privacy-policy.html", "terms.html"],
+      colors:  { primary: clientData.primaryColor, accent: clientData.accentColor },
+      pages:   ["index.html", "privacy-policy.html", "terms.html"],
       message: `Pages generated and deployed for ${clientData.businessName}`,
     });
 
@@ -75,42 +77,38 @@ app.post("/webhook/ghl-onboarding", async (req, res) => {
   }
 });
 
-// ─── DEPLOY TO VERCEL ─────────────────────────────────────────────────────────
-async function deployToVercel(slug, indexHtml, privacyHtml, termsHtml) {
-  try {
-    const response = await axios.post(
-      "https://api.vercel.com/v13/deployments",
-      {
-        name: `a2p-${slug}`,
-        files: [
-          { file: "index.html",          data: Buffer.from(indexHtml).toString("base64"),    encoding: "base64" },
-          { file: "privacy-policy.html", data: Buffer.from(privacyHtml).toString("base64"),  encoding: "base64" },
-          { file: "terms.html",          data: Buffer.from(termsHtml).toString("base64"),    encoding: "base64" },
-        ],
-        projectSettings: {
-          framework: null,
-          buildCommand: null,
-          outputDirectory: null,
-        },
-        target: "production",
-        public: true,
-      },
-      {
-        headers: {
-          Authorization:  `Bearer ${VERCEL_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+// ─── PARSE GHL PAYLOAD ────────────────────────────────────────────────────────
+// Handles ANY field structure GHL sends — checks multiple possible locations
+function parseGHLPayload(body) {
+  // GHL can send data in different structures depending on workflow setup
+  const contact      = body.contact || body;
+  const cf           = body.customFields || body.custom_fields || body.formFields || {};
 
-    const url = `https://${response.data.url}`;
-    console.log(`✅ Vercel deployment successful: ${url}`);
-    return url;
+  // Helper to check multiple possible field names
+  const get = (...keys) => {
+    for (const key of keys) {
+      const val = cf[key] || contact[key] || body[key];
+      if (val && val !== "undefined" && val !== "") return val;
+    }
+    return "";
+  };
 
-  } catch (err) {
-    console.error("❌ Vercel deploy error:", err.response?.data || err.message);
-    return null;
-  }
+  return {
+    businessName:     get("legal_entity_name", "company_name", "companyName", "business_name") || "Your Business",
+    industry:         get("business_type", "industry")                                          || "General",
+    tagline:          get("do_you_have_slogans", "slogan", "tagline")                           || "",
+    website:          get("business_website", "website", "company_website")                     || "",
+    logoUrl:          get("company_logo", "logo_url", "logo")                                   || "",
+    smsNumber:        get("business_phone_number", "business_phone", "phone")                   || contact.phone || "",
+    email:            get("business_email", "email")                                             || contact.email || "",
+    address:          get("business_address", "address")                                         || "",
+    contactName:      (contact.firstName || contact.first_name || "") + " " + (contact.lastName || contact.last_name || ""),
+    serviceDesc:      get("detailed_list_of_your_services", "services", "service_description")  || "",
+    messageFrequency: "daily messages",
+    ctaText:          get("cta_text", "cta")                                                     || "Get a Free Consultation",
+    primaryColor:     "#2563eb",
+    accentColor:      "#06b6d4",
+  };
 }
 
 // ─── EXTRACT BRAND COLORS FROM WEBSITE ───────────────────────────────────────
@@ -121,10 +119,12 @@ async function extractBrandColors(websiteUrl) {
     const response = await axios.get(url, {
       timeout: 8000,
       headers: { "User-Agent": "Mozilla/5.0 (compatible; A2PAgent/1.0)" },
+      responseType: "text",
     });
 
-    const html = response.data;
+    const html = String(response.data);
 
+    // Check meta theme-color first
     const themeMatch = html.match(/name=["']theme-color["'][^>]*content=["'](#[0-9A-Fa-f]{6})["']/i)
       || html.match(/content=["'](#[0-9A-Fa-f]{6})["'][^>]*name=["']theme-color["']/i);
 
@@ -170,27 +170,48 @@ async function extractBrandColors(websiteUrl) {
   }
 }
 
-// ─── PARSE GHL PAYLOAD ────────────────────────────────────────────────────────
-function parseGHLPayload(body) {
-  const contact      = body.contact || body;
-  const customFields = body.customFields || body.custom_fields || {};
+// ─── DEPLOY TO VERCEL ─────────────────────────────────────────────────────────
+async function deployToVercel(slug, indexHtml, privacyHtml, termsHtml) {
+  try {
+    const projectName = `a2p-${slug}`;
 
-  return {
-    businessName:     customFields.legal_entity_name             || contact.companyName || "Your Business",
-    industry:         customFields.business_type                  || "General",
-    tagline:          customFields.do_you_have_slogans            || "",
-    website:          customFields.business_website               || contact.website     || "",
-    logoUrl:          customFields.company_logo                   || "",
-    smsNumber:        customFields.business_phone_number          || contact.phone       || "",
-    email:            customFields.business_email                 || contact.email       || "",
-    address:          customFields.business_address               || "",
-    contactName:      (contact.firstName || "") + " " + (contact.lastName || ""),
-    serviceDesc:      customFields.detailed_list_of_your_services || "",
-    messageFrequency: "daily messages",
-    ctaText:          customFields.cta_text                       || "Get a Free Consultation",
-    primaryColor:     "#2563eb",
-    accentColor:      "#06b6d4",
-  };
+    // Create project if it doesn't exist
+    try {
+      await axios.post(
+        "https://api.vercel.com/v10/projects",
+        { name: projectName, framework: null },
+        { headers: { Authorization: `Bearer ${VERCEL_TOKEN}`, "Content-Type": "application/json" } }
+      );
+      console.log(`📁 Vercel project created: ${projectName}`);
+    } catch (e) {
+      console.log(`📁 Vercel project exists: ${projectName}`);
+    }
+
+    // Deploy files
+    await axios.post(
+      "https://api.vercel.com/v13/deployments",
+      {
+        name: projectName,
+        files: [
+          { file: "index.html",          data: Buffer.from(indexHtml).toString("base64"),   encoding: "base64" },
+          { file: "privacy-policy.html", data: Buffer.from(privacyHtml).toString("base64"), encoding: "base64" },
+          { file: "terms.html",          data: Buffer.from(termsHtml).toString("base64"),   encoding: "base64" },
+        ],
+        projectSettings: { framework: null, buildCommand: null, outputDirectory: null },
+        target: "production",
+        public: true,
+      },
+      { headers: { Authorization: `Bearer ${VERCEL_TOKEN}`, "Content-Type": "application/json" } }
+    );
+
+    const stableUrl = `https://${projectName}.vercel.app`;
+    console.log(`✅ Vercel deployment successful: ${stableUrl}`);
+    return stableUrl;
+
+  } catch (err) {
+    console.error("❌ Vercel deploy error:", err.response?.data || err.message);
+    return null;
+  }
 }
 
 // ─── GENERATE LANDING PAGE ────────────────────────────────────────────────────
@@ -218,7 +239,7 @@ DESIGN REQUIREMENTS — make it look like a $10k agency page:
 2. Hero section: full viewport height, bold headline, subheadline, animated gradient background using brand colors, floating CTA button with hover effects
 3. Trust bar below hero: show "500+ Clients Served", "5-Star Rated", "A2P Compliant", "Licensed & Insured" with icons
 4. Services section: dark background, card grid with hover animations, icons, and descriptions
-5. Social proof section: 2-3 fake but realistic testimonials with star ratings and client names from the industry
+5. Social proof section: 2-3 realistic testimonials with star ratings and names from the industry
 6. Lead capture form: centered, clean card design with shadow, rounded inputs, gradient submit button
 7. Sticky navigation with blur backdrop effect
 8. Smooth scroll animations using Intersection Observer API
@@ -228,11 +249,11 @@ DESIGN REQUIREMENTS — make it look like a $10k agency page:
 CONVERSION REQUIREMENTS:
 - Headline must communicate the #1 benefit immediately
 - Use urgency: "Limited spots available this month"
-- Form headline: "Get Your Free Strategy Call" not just "Contact Us"
-- Include a value proposition checklist next to or above the form
-- CTA button must use contrasting color with arrow icon
+- Form headline: "Get Your Free Strategy Call"
+- Include a value proposition checklist above the form
+- CTA button must use contrasting color with arrow icon →
 
-A2P COMPLIANCE — ALL of these are MANDATORY in the form section:
+A2P COMPLIANCE — ALL MANDATORY in the form section:
 - "By submitting this form, you authorize ${client.businessName} to send SMS messages to the mobile number provided."
 - "Message frequency: ${client.messageFrequency}. Msg & data rates may apply."
 - "Reply STOP to opt out. Reply HELP for help."
@@ -267,7 +288,7 @@ Must cover: data collection, SMS data usage, TCPA consent, third-party sharing,
 CCPA rights, GDPR rights, data retention, opt-out process, contact information.
 IMPORTANT: Include "Mobile information will not be shared with third parties/affiliates for marketing/promotional purposes."
 
-Style: Clean HTML with embedded CSS. Use ${client.primaryColor} for headings.
+Style: Clean, professional HTML with embedded CSS. Use ${client.primaryColor} for headings.
 Include navigation link back to index.html.
 
 Output ONLY the complete HTML — no explanation, no markdown.`;
@@ -292,7 +313,7 @@ Must include: program description, message frequency, "Msg & data rates may appl
 STOP/HELP keywords, supported carriers, opt-out confirmation, limitation of liability.
 IMPORTANT: Include "Mobile information will not be shared with third parties for marketing purposes."
 
-Style: Clean HTML with embedded CSS. Use ${client.primaryColor} for headings.
+Style: Clean, professional HTML with embedded CSS. Use ${client.primaryColor} for headings.
 Include navigation link back to index.html.
 
 Output ONLY the complete HTML — no explanation, no markdown.`;
@@ -305,15 +326,15 @@ async function callClaude(prompt) {
   const response = await axios.post(
     "https://api.anthropic.com/v1/messages",
     {
-      model: "claude-sonnet-4-20250514",
+      model:      "claude-sonnet-4-20250514",
       max_tokens: 4096,
-      messages: [{ role: "user", content: prompt }],
+      messages:   [{ role: "user", content: prompt }],
     },
     {
       headers: {
-        "x-api-key":          ANTHROPIC_API_KEY,
-        "anthropic-version":  "2023-06-01",
-        "content-type":       "application/json",
+        "x-api-key":         ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type":      "application/json",
       },
     }
   );
@@ -321,10 +342,10 @@ async function callClaude(prompt) {
 }
 
 // ─── HEALTH CHECK ─────────────────────────────────────────────────────────────
-app.get("/health", (req, res) => res.json({ status: "ok", agent: "A2P Landing Page Agent v1.0" }));
+app.get("/health", (req, res) => res.json({ status: "ok", agent: "A2P Landing Page Agent v2.0" }));
 
 app.listen(PORT, () => {
-  console.log(`\n🚀 A2P Agent running on port ${PORT}`);
+  console.log(`\n🚀 A2P Agent v2.0 running on port ${PORT}`);
   console.log(`📡 Webhook: http://localhost:${PORT}/webhook/ghl-onboarding`);
   console.log(`✅ Health: http://localhost:${PORT}/health\n`);
 });
