@@ -83,9 +83,9 @@ async function deployToVercel(slug, indexHtml, privacyHtml, termsHtml) {
       {
         name: `a2p-${slug}`,
         files: [
-          { file: "index.html",          data: indexHtml,    encoding: "utf8" },
-          { file: "privacy-policy.html", data: privacyHtml,  encoding: "utf8" },
-          { file: "terms.html",          data: termsHtml,    encoding: "utf8" },
+          { file: "index.html",          data: Buffer.from(indexHtml).toString("base64"),    encoding: "base64" },
+          { file: "privacy-policy.html", data: Buffer.from(privacyHtml).toString("base64"),  encoding: "base64" },
+          { file: "terms.html",          data: Buffer.from(termsHtml).toString("base64"),    encoding: "base64" },
         ],
         projectSettings: {
           framework: null,
