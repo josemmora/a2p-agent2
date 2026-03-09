@@ -1,6 +1,6 @@
 /**
- * A2P Landing Page Agent v2.0
- * GHL Webhook → Extract Colors → Generate Pages → Auto-Deploy to Vercel
+ * A2P Landing Page Agent v3.0
+ * GHL Compliant — 2026 A2P Requirements
  * SETUP: npm install express axios fs-extra slugify
  */
 
@@ -26,7 +26,7 @@ app.post("/webhook/ghl-onboarding", async (req, res) => {
     const clientData = parseGHLPayload(req.body);
     console.log(`🚀 Generating pages for: ${clientData.businessName}`);
 
-    // Step 1 — Extract brand colors from website
+    // Extract brand colors from website
     if (clientData.website) {
       console.log(`🎨 Extracting colors from: ${clientData.website}`);
       const colors = await extractBrandColors(clientData.website);
@@ -34,10 +34,10 @@ app.post("/webhook/ghl-onboarding", async (req, res) => {
       clientData.accentColor  = colors.accent;
       console.log(`✅ Colors — Primary: ${colors.primary} Accent: ${colors.accent}`);
     } else {
-      console.log("⚠️ No website URL provided — using default colors");
+      console.log("⚠️ No website URL — using default colors");
     }
 
-    // Step 2 — Generate all 3 pages in parallel
+    // Generate all 3 pages in parallel
     console.log("⚙️ Generating pages with Claude...");
     const [landingPage, privacyPolicy, smsTerms] = await Promise.all([
       generateLandingPage(clientData),
@@ -45,7 +45,7 @@ app.post("/webhook/ghl-onboarding", async (req, res) => {
       generateSMSTerms(clientData),
     ]);
 
-    // Step 3 — Save locally
+    // Save locally
     const slug = slugify(clientData.businessName, { lower: true, strict: true });
     const clientDir = path.join(OUTPUT_DIR, slug);
     await fs.ensureDir(clientDir);
@@ -54,7 +54,7 @@ app.post("/webhook/ghl-onboarding", async (req, res) => {
     await fs.writeFile(path.join(clientDir, "terms.html"),          smsTerms);
     console.log(`✅ Pages saved to /output/${slug}/`);
 
-    // Step 4 — Deploy to Vercel
+    // Deploy to Vercel
     let liveUrl = null;
     if (VERCEL_TOKEN) {
       console.log("🚀 Deploying to Vercel...");
@@ -78,13 +78,10 @@ app.post("/webhook/ghl-onboarding", async (req, res) => {
 });
 
 // ─── PARSE GHL PAYLOAD ────────────────────────────────────────────────────────
-// Handles ANY field structure GHL sends — checks multiple possible locations
 function parseGHLPayload(body) {
-  // GHL can send data in different structures depending on workflow setup
-  const contact      = body.contact || body;
-  const cf           = body.customFields || body.custom_fields || body.formFields || {};
+  const contact = body.contact || body;
+  const cf      = body.customFields || body.custom_fields || body.formFields || {};
 
-  // Helper to check multiple possible field names
   const get = (...keys) => {
     for (const key of keys) {
       const val = cf[key] || contact[key] || body[key];
@@ -106,8 +103,8 @@ function parseGHLPayload(body) {
     serviceDesc:      get("detailed_list_of_your_services", "services", "service_description")  || "",
     messageFrequency: "daily messages",
     ctaText:          get("cta_text", "cta")                                                     || "Get a Free Consultation",
-    primaryColor:     "#2563eb",
-    accentColor:      "#06b6d4",
+    primaryColor:     "#1a1a2e",
+    accentColor:      "#e94560",
   };
 }
 
@@ -115,7 +112,6 @@ function parseGHLPayload(body) {
 async function extractBrandColors(websiteUrl) {
   try {
     const url = websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`;
-
     const response = await axios.get(url, {
       timeout: 8000,
       headers: { "User-Agent": "Mozilla/5.0 (compatible; A2PAgent/1.0)" },
@@ -123,19 +119,13 @@ async function extractBrandColors(websiteUrl) {
     });
 
     const html = String(response.data);
-
-    // Check meta theme-color first
     const themeMatch = html.match(/name=["']theme-color["'][^>]*content=["'](#[0-9A-Fa-f]{6})["']/i)
       || html.match(/content=["'](#[0-9A-Fa-f]{6})["'][^>]*name=["']theme-color["']/i);
 
     const colorRegex = /#([0-9A-Fa-f]{6})\b/g;
     const allColors  = [];
     let match;
-
-    while ((match = colorRegex.exec(html)) !== null) {
-      allColors.push("#" + match[1]);
-    }
-
+    while ((match = colorRegex.exec(html)) !== null) allColors.push("#" + match[1]);
     if (themeMatch) allColors.unshift(themeMatch[1]);
 
     const brandColors = allColors.filter((color) => {
@@ -143,30 +133,17 @@ async function extractBrandColors(websiteUrl) {
       const r = parseInt(hex.slice(0, 2), 16);
       const g = parseInt(hex.slice(2, 4), 16);
       const b = parseInt(hex.slice(4, 6), 16);
-      const isGray  = Math.abs(r - g) < 25 && Math.abs(g - b) < 25;
-      const isWhite = r > 235 && g > 235 && b > 235;
-      const isBlack = r < 25  && g < 25  && b < 25;
-      return !isGray && !isWhite && !isBlack;
+      return !(Math.abs(r-g)<25 && Math.abs(g-b)<25) && !(r>235&&g>235&&b>235) && !(r<25&&g<25&&b<25);
     });
 
     const colorCount = {};
-    brandColors.forEach((c) => {
-      const n = c.toLowerCase();
-      colorCount[n] = (colorCount[n] || 0) + 1;
-    });
+    brandColors.forEach((c) => { const n=c.toLowerCase(); colorCount[n]=(colorCount[n]||0)+1; });
+    const sorted = Object.entries(colorCount).sort((a,b)=>b[1]-a[1]).map(([c])=>c);
 
-    const sorted = Object.entries(colorCount)
-      .sort((a, b) => b[1] - a[1])
-      .map(([color]) => color);
-
-    return {
-      primary: sorted[0] || "#2563eb",
-      accent:  sorted[1] || "#06b6d4",
-    };
-
+    return { primary: sorted[0] || "#1a1a2e", accent: sorted[1] || "#e94560" };
   } catch (err) {
-    console.log(`⚠️ Could not extract colors: ${err.message}. Using defaults.`);
-    return { primary: "#2563eb", accent: "#06b6d4" };
+    console.log(`⚠️ Color extraction failed: ${err.message}. Using defaults.`);
+    return { primary: "#1a1a2e", accent: "#e94560" };
   }
 }
 
@@ -175,7 +152,6 @@ async function deployToVercel(slug, indexHtml, privacyHtml, termsHtml) {
   try {
     const projectName = `a2p-${slug}`;
 
-    // Create project if it doesn't exist
     try {
       await axios.post(
         "https://api.vercel.com/v10/projects",
@@ -187,7 +163,6 @@ async function deployToVercel(slug, indexHtml, privacyHtml, termsHtml) {
       console.log(`📁 Vercel project exists: ${projectName}`);
     }
 
-    // Deploy files
     await axios.post(
       "https://api.vercel.com/v13/deployments",
       {
@@ -205,69 +180,76 @@ async function deployToVercel(slug, indexHtml, privacyHtml, termsHtml) {
     );
 
     const stableUrl = `https://${projectName}.vercel.app`;
-    console.log(`✅ Vercel deployment successful: ${stableUrl}`);
+    console.log(`✅ Deployed: ${stableUrl}`);
     return stableUrl;
 
   } catch (err) {
-    console.error("❌ Vercel deploy error:", err.response?.data || err.message);
+    console.error("❌ Vercel error:", err.response?.data || err.message);
     return null;
   }
 }
 
 // ─── GENERATE LANDING PAGE ────────────────────────────────────────────────────
 async function generateLandingPage(client) {
-  const prompt = `You are a world-class landing page designer and conversion rate optimization expert. You build stunning, high-converting pages that look like they cost $10,000 to design.
+  const prompt = `You are an expert web developer building A2P SMS compliance opt-in pages for the 2026 GHL A2P registration requirements.
 
-Generate a STUNNING, production-ready HTML landing page for this client. This page must look PREMIUM — not like a template.
+Generate a COMPLETE, FULLY RENDERED HTML opt-in page. Use inline CSS only — no external stylesheets.
 
-CLIENT DATA:
-- Business: ${client.businessName}
+CLIENT:
+- Business Name: ${client.businessName}
 - Industry: ${client.industry}
-- Tagline: ${client.tagline || "Generate a powerful, benefit-driven tagline"}
+- Tagline: ${client.tagline || "Professional " + client.industry + " Services"}
 - Primary Color: ${client.primaryColor}
 - Accent Color: ${client.accentColor}
-- Logo URL: ${client.logoUrl || "none"}
 - Phone: ${client.smsNumber}
 - Email: ${client.email}
-- Services: ${client.serviceDesc || "Professional " + client.industry + " services"}
-- CTA: ${client.ctaText}
-- Message Frequency: ${client.messageFrequency}
+- Services: ${client.serviceDesc}
 - Address: ${client.address}
 
-DESIGN REQUIREMENTS — make it look like a $10k agency page:
-1. Use Google Fonts — pick a premium font pairing (e.g. Playfair Display + Inter, or Montserrat + Open Sans)
-2. Hero section: full viewport height, bold headline, subheadline, animated gradient background using brand colors, floating CTA button with hover effects
-3. Trust bar below hero: show "500+ Clients Served", "5-Star Rated", "A2P Compliant", "Licensed & Insured" with icons
-4. Services section: dark background, card grid with hover animations, icons, and descriptions
-5. Social proof section: 2-3 realistic testimonials with star ratings and names from the industry
-6. Lead capture form: centered, clean card design with shadow, rounded inputs, gradient submit button
-7. Sticky navigation with blur backdrop effect
-8. Smooth scroll animations using Intersection Observer API
-9. Mobile-first fully responsive layout
-10. Micro-interactions: button hover states, input focus effects, card lifts on hover
+PAGE STRUCTURE — build exactly this:
 
-CONVERSION REQUIREMENTS:
-- Headline must communicate the #1 benefit immediately
-- Use urgency: "Limited spots available this month"
-- Form headline: "Get Your Free Strategy Call"
-- Include a value proposition checklist above the form
-- CTA button must use contrasting color with arrow icon →
+1. HEADER
+   - White background, thin bottom border
+   - Company name "${client.businessName}" on the LEFT in bold using primary color
+   - Navigation links on RIGHT: "Privacy Policy" linking to privacy-policy.html | "Terms" linking to terms.html
 
-A2P COMPLIANCE — ALL MANDATORY in the form section:
-- "By submitting this form, you authorize ${client.businessName} to send SMS messages to the mobile number provided."
-- "Message frequency: ${client.messageFrequency}. Msg & data rates may apply."
-- "Reply STOP to opt out. Reply HELP for help."
-- "Consent is not a condition of any purchase."
-- Links to privacy-policy.html and terms.html
-- Compliance badges: "TCPA Compliant" | "A2P 10DLC Registered" | "Data Secure" | "SSL Protected"
+2. HERO SECTION
+   - Background: primary color ${client.primaryColor}
+   - Large white headline: "${client.tagline || client.businessName}"
+   - White subheadline describing their services
+   - Centered, padding 80px top/bottom
 
-FOOTER:
-- Dark background matching brand colors
-- Logo text, tagline, quick links, contact info
-- Privacy Policy | Terms | SMS Terms links
-- Copyright and "Msg & data rates may apply"
+3. OPT-IN FORM SECTION
+   - White background, max-width 600px, centered, padding 40px
+   - Heading: "Request More Information"
+   - Fields (all required): First Name, Last Name, Phone Number, Email Address
+   - TWO SEPARATE CONSENT CHECKBOXES (NOT pre-checked, both optional):
 
-Output ONLY the complete HTML with all CSS and JS embedded — no explanation, no markdown, no code fences. Make it breathtaking.`;
+   CHECKBOX 1 — Marketing:
+   "I consent to receive marketing text messages, about special offers, discounts, and service updates, from ${client.businessName} at the phone number provided. Message frequency may vary. Message & data rates may apply. Text HELP for assistance, reply STOP to opt out."
+
+   CHECKBOX 2 — Non-Marketing:
+   "I consent to receive non-marketing text messages from ${client.businessName} about appointment reminders, service updates, and account notifications. Message frequency may vary, message & data rates may apply. Text HELP for assistance, reply STOP to opt out."
+
+   - Submit button using accent color ${client.accentColor} full width, text "Submit"
+   - Below button small text: "Consent is not a condition of any purchase."
+
+4. FOOTER
+   - Background: primary color ${client.primaryColor}
+   - White text: © ${new Date().getFullYear()} ${client.businessName}. All rights reserved.
+   - Links (white, underlined): Privacy Policy | Terms & Conditions
+   - Small text: "Msg & data rates may apply. Reply STOP to opt out."
+   - Address: ${client.address}
+
+STYLING RULES:
+- Use system fonts: font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
+- Clean, minimal design — only 2 colors: ${client.primaryColor} and ${client.accentColor}
+- Form inputs: border: 1px solid #ddd, padding: 12px, border-radius: 6px, width: 100%, box-sizing: border-box
+- Checkboxes: margin-bottom: 16px, label font-size: 13px, line-height: 1.5
+- Fully mobile responsive using max-width and padding
+- NO animations, NO gradients, NO external fonts — keep it simple and fast loading
+
+Output ONLY the complete HTML — no explanation, no markdown, no code fences.`;
 
   return callClaude(prompt);
 }
@@ -276,22 +258,39 @@ Output ONLY the complete HTML with all CSS and JS embedded — no explanation, n
 async function generatePrivacyPolicy(client) {
   const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
-  const prompt = `Generate a complete Privacy Policy HTML page for:
+  const prompt = `Generate a complete, fully rendered Privacy Policy HTML page.
 
-BUSINESS: ${client.businessName}
-EMAIL: ${client.email}
-WEBSITE: ${client.website || "our website"}
-ADDRESS: ${client.address}
-EFFECTIVE DATE: ${today}
+CLIENT:
+- Business: ${client.businessName}
+- Email: ${client.email}
+- Phone: ${client.smsNumber}
+- Website: ${client.website || "our website"}
+- Address: ${client.address}
+- Primary Color: ${client.primaryColor}
+- Effective Date: ${today}
 
-Must cover: data collection, SMS data usage, TCPA consent, third-party sharing,
-CCPA rights, GDPR rights, data retention, opt-out process, contact information.
-IMPORTANT: Include "Mobile information will not be shared with third parties/affiliates for marketing/promotional purposes."
+PAGE STRUCTURE:
+1. HEADER: "${client.businessName}" on left in bold (primary color), nav link "← Back to Home" linking to index.html
+2. CONTENT: Clean white background, max-width 800px centered, all sections below
 
-Style: Clean, professional HTML with embedded CSS. Use ${client.primaryColor} for headings.
-Include navigation link back to index.html.
+REQUIRED SECTIONS:
+- Effective Date: ${today}
+- Introduction
+- Information We Collect
+- How We Use Your Information
+- SMS / Text Messaging — include this EXACT language:
+  "No mobile information will be shared with third parties/affiliates for marketing/promotional purposes. Information sharing to subcontractors in support services, such as customer service, is permitted. All other use case categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties."
+- Third Party Sharing (state we do NOT sell or share data)
+- CCPA Rights
+- GDPR Rights  
+- Data Retention
+- Contact Us: ${client.email} | ${client.smsNumber} | ${client.address}
 
-Output ONLY the complete HTML — no explanation, no markdown.`;
+3. FOOTER: same as main page — © ${new Date().getFullYear()} ${client.businessName} | Privacy Policy | Terms
+
+STYLING: Clean, minimal. Use ${client.primaryColor} for headings h2. System fonts. No external dependencies.
+
+Output ONLY the complete HTML — no explanation, no markdown, no code fences.`;
 
   return callClaude(prompt);
 }
@@ -300,23 +299,45 @@ Output ONLY the complete HTML — no explanation, no markdown.`;
 async function generateSMSTerms(client) {
   const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
-  const prompt = `Generate complete SMS Terms & Conditions HTML page for A2P 10DLC compliance.
+  const prompt = `Generate a complete, fully rendered SMS Terms & Conditions HTML page for A2P 10DLC 2026 compliance.
 
-BUSINESS: ${client.businessName}
-SMS NUMBER: ${client.smsNumber}
-EMAIL: ${client.email}
-MESSAGE FREQUENCY: ${client.messageFrequency}
-EFFECTIVE DATE: ${today}
-ADDRESS: ${client.address}
+CLIENT:
+- Business: ${client.businessName}
+- SMS Number: ${client.smsNumber}
+- Email: ${client.email}
+- Address: ${client.address}
+- Primary Color: ${client.primaryColor}
+- Effective Date: ${today}
 
-Must include: program description, message frequency, "Msg & data rates may apply",
-STOP/HELP keywords, supported carriers, opt-out confirmation, limitation of liability.
-IMPORTANT: Include "Mobile information will not be shared with third parties for marketing purposes."
+PAGE STRUCTURE:
+1. HEADER: "${client.businessName}" on left in bold (primary color), nav link "← Back to Home" linking to index.html
+2. CONTENT: Clean white background, max-width 800px centered
 
-Style: Clean, professional HTML with embedded CSS. Use ${client.primaryColor} for headings.
-Include navigation link back to index.html.
+REQUIRED SECTIONS WITH EXACT LANGUAGE:
 
-Output ONLY the complete HTML — no explanation, no markdown.`;
+1. Program Description
+   - Business name, what SMS messages will be sent
+
+2. Opt-Out clause — use this EXACT text:
+   "You can cancel the SMS service at any time. Just text STOP to ${client.smsNumber}. After you send the SMS message STOP to us, we will send you an SMS message to confirm that you have been unsubscribed. After this, you will no longer receive SMS messages from us. If you want to join again, just sign up as you did the first time and we will start sending SMS messages to you again. If you are experiencing issues with the messaging program you can reply with the keyword HELP for more assistance, or you can get help directly at ${client.email}."
+
+3. Carrier Liability — use this EXACT text:
+   "Carriers are not liable for delayed or undelivered messages."
+
+4. Message Frequency — use this EXACT text:
+   "As always, message and data rates may apply for any messages sent to you from us and to us from you. You will receive daily messages. If you have any questions about your text plan or data plan, it is best to contact your wireless provider."
+
+5. Privacy Policy Link:
+   "If you have any questions regarding privacy, please read our privacy policy: <a href='privacy-policy.html'>Privacy Policy</a>"
+
+6. Non-Sharing clause:
+   "No mobile information will be shared with third parties/affiliates for marketing/promotional purposes."
+
+3. FOOTER: © ${new Date().getFullYear()} ${client.businessName} | Privacy Policy | Terms & Conditions
+
+STYLING: Clean, minimal. Use ${client.primaryColor} for h2 headings. System fonts. No external dependencies.
+
+Output ONLY the complete HTML — no explanation, no markdown, no code fences.`;
 
   return callClaude(prompt);
 }
@@ -342,10 +363,10 @@ async function callClaude(prompt) {
 }
 
 // ─── HEALTH CHECK ─────────────────────────────────────────────────────────────
-app.get("/health", (req, res) => res.json({ status: "ok", agent: "A2P Landing Page Agent v2.0" }));
+app.get("/health", (req, res) => res.json({ status: "ok", agent: "A2P Landing Page Agent v3.0" }));
 
 app.listen(PORT, () => {
-  console.log(`\n🚀 A2P Agent v2.0 running on port ${PORT}`);
+  console.log(`\n🚀 A2P Agent v3.0 running on port ${PORT}`);
   console.log(`📡 Webhook: http://localhost:${PORT}/webhook/ghl-onboarding`);
   console.log(`✅ Health: http://localhost:${PORT}/health\n`);
 });
