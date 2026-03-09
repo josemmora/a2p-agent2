@@ -191,38 +191,68 @@ async function deployToVercel(slug, indexHtml, privacyHtml, termsHtml) {
 
 // ─── GENERATE LANDING PAGE ────────────────────────────────────────────────────
 async function generateLandingPage(client) {
-  const prompt = `You are an expert web developer building A2P SMS compliance opt-in pages for the 2026 GHL A2P registration requirements.
+  const prompt = `You are an expert direct-response copywriter and web developer building A2P SMS compliance opt-in pages for 2026 GHL A2P registration.
 
-Generate a COMPLETE, FULLY RENDERED HTML opt-in page. Use inline CSS only — no external stylesheets.
+Generate a COMPLETE, FULLY RENDERED HTML opt-in page. Use only inline CSS — no external stylesheets except Google Fonts and Unsplash images.
 
 CLIENT:
 - Business Name: ${client.businessName}
 - Industry: ${client.industry}
 - Tagline: ${client.tagline || "Professional " + client.industry + " Services"}
-- Primary Color: ${client.primaryColor}
-- Accent Color: ${client.accentColor}
 - Phone: ${client.smsNumber}
 - Email: ${client.email}
 - Services: ${client.serviceDesc}
 - Address: ${client.address}
 
+COLOR SCHEME: Black and white only
+- Primary: #000000 (black)
+- Secondary: #ffffff (white)
+- Accent: #222222 (dark gray for buttons)
+- Border/divider: #e0e0e0
+
+IRRESISTIBLE OFFER HEADLINE:
+Based on the business services "${client.serviceDesc}" and industry "${client.industry}", craft ONE powerful, specific, irresistible offer headline. Examples of the style:
+- Concrete: "Get a FREE Concrete Estimate + $500 Off Any Project Over $5,000"
+- Roofing: "Free Roof Inspection + $1,000 Off Any Full Replacement"
+- Landscaping: "Transform Your Yard This Season — Free Design Consultation Included"
+Make it specific to their actual services. Use urgency. Make it feel like a real deal.
+
+STOCK IMAGES — use Unsplash source URLs based on their industry:
+- Pick 1 hero image relevant to "${client.industry}" using: https://source.unsplash.com/1600x900/?${client.industry.toLowerCase().replace(/\s+/g, ',')}
+- Pick 3 small gallery images showing their work type using: https://source.unsplash.com/600x400/?${client.industry.toLowerCase().replace(/\s+/g, ',')}
+These are free, no API key needed.
+
 PAGE STRUCTURE — build exactly this:
 
 1. HEADER
-   - White background, thin bottom border
-   - Company name "${client.businessName}" on the LEFT in bold using primary color
-   - Navigation links on RIGHT: "Privacy Policy" linking to privacy-policy.html | "Terms" linking to terms.html
+   - White background, 1px bottom border #e0e0e0, padding 16px 32px
+   - Company name "${client.businessName}" on the LEFT in bold black, font-size 20px
+   - Navigation on RIGHT: "Privacy Policy" | "Terms" — small gray links to privacy-policy.html and terms.html
 
 2. HERO SECTION
-   - Background: primary color ${client.primaryColor}
-   - Large white headline: "${client.tagline || client.businessName}"
-   - White subheadline describing their services
-   - Centered, padding 80px top/bottom
+   - Full width, min-height 500px
+   - Background: Unsplash image for their industry with dark overlay (rgba 0,0,0,0.65)
+   - Centered white text
+   - Top badge: "LIMITED TIME OFFER" in white uppercase small text with border
+   - Large H1: the irresistible offer headline you crafted (white, bold, 48px)
+   - Subheadline: brief description of their services (white, 20px, opacity 0.9)
+   - CTA button: white background, black text, "Claim Your Offer →" bold, border-radius 4px, padding 16px 40px
 
-3. OPT-IN FORM SECTION
-   - White background, max-width 600px, centered, padding 40px
-   - Heading: "Request More Information"
-   - Fields (all required): First Name, Last Name, Phone Number, Email Address
+3. TRUST BAR
+   - White background, border-bottom 1px #e0e0e0
+   - 4 items centered in a row: "⭐ 5-Star Rated" | "✓ Licensed & Insured" | "✓ Free Estimates" | "✓ Local Experts"
+   - Black text, font-size 14px, padding 20px
+
+4. PHOTO STRIP
+   - 3 equal-width Unsplash images side by side showing their work
+   - Each image height 220px, object-fit cover
+   - No text needed — just visual proof of their work quality
+
+5. OPT-IN FORM SECTION
+   - White background, max-width 580px centered, padding 48px 40px
+   - Black H2: "Claim Your Free Consultation"
+   - Gray subtext: "Fill out the form below and we'll contact you within 24 hours."
+   - Fields (all required, black border on focus): First Name, Last Name, Phone Number, Email Address
    - TWO SEPARATE CONSENT CHECKBOXES (NOT pre-checked, both optional):
 
    CHECKBOX 1 — Marketing:
@@ -231,23 +261,24 @@ PAGE STRUCTURE — build exactly this:
    CHECKBOX 2 — Non-Marketing:
    "I consent to receive non-marketing text messages from ${client.businessName} about appointment reminders, service updates, and account notifications. Message frequency may vary, message & data rates may apply. Text HELP for assistance, reply STOP to opt out."
 
-   - Submit button using accent color ${client.accentColor} full width, text "Submit"
-   - Below button small text: "Consent is not a condition of any purchase."
+   - Submit button: full width, black background, white text, "Submit My Request →", padding 16px, border-radius 4px
+   - Below button: small gray text "Consent is not a condition of any purchase."
 
-4. FOOTER
-   - Background: primary color ${client.primaryColor}
-   - White text: © ${new Date().getFullYear()} ${client.businessName}. All rights reserved.
-   - Links (white, underlined): Privacy Policy | Terms & Conditions
-   - Small text: "Msg & data rates may apply. Reply STOP to opt out."
-   - Address: ${client.address}
+6. FOOTER
+   - Black background, white text, padding 40px
+   - Company name bold, address, phone, email
+   - Links: Privacy Policy | Terms & Conditions (white underlined)
+   - "Msg & data rates may apply. Reply STOP to opt out."
+   - © ${new Date().getFullYear()} ${client.businessName}. All rights reserved.
 
 STYLING RULES:
-- Use system fonts: font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
-- Clean, minimal design — only 2 colors: ${client.primaryColor} and ${client.accentColor}
-- Form inputs: border: 1px solid #ddd, padding: 12px, border-radius: 6px, width: 100%, box-sizing: border-box
-- Checkboxes: margin-bottom: 16px, label font-size: 13px, line-height: 1.5
-- Fully mobile responsive using max-width and padding
-- NO animations, NO gradients, NO external fonts — keep it simple and fast loading
+- Google Fonts: import Inter from Google Fonts for clean typography
+- Black and white ONLY — no other colors except grays for borders/subtext
+- Form inputs: border: 1px solid #ddd, padding: 12px, border-radius: 4px, width: 100%, box-sizing: border-box, font-size: 16px
+- On input focus: border-color: #000
+- Checkboxes: margin-bottom: 20px, label font-size: 13px, line-height: 1.6, color: #444
+- Fully mobile responsive — stack columns on mobile, reduce font sizes
+- Images must render with object-fit: cover
 
 Output ONLY the complete HTML — no explanation, no markdown, no code fences.`;
 
