@@ -191,11 +191,21 @@ async function deployToVercel(slug, indexHtml, privacyHtml, termsHtml) {
 
 
 // ─── GET INDUSTRY IMAGES ──────────────────────────────────────────────────────
-// Hardcoded Unsplash photo IDs by industry — these direct URLs always work
 function getIndustryImages(industry, services) {
   const text = (industry + " " + services).toLowerCase();
 
-  if (text.match(/concrete|masonry|cement|foundation|slab/)) return {
+  // LANDSCAPING / TURF / OUTDOOR
+  if (text.match(/turf|sod|grass|landscape|lawn|garden|yard|tree|irrigation|paver|travertine|pergola|outdoor kitchen|backyard/)) return {
+    hero: "https://images.unsplash.com/photo-1558904541-efa843a96f01?w=1600&q=80&auto=format&fit=crop",
+    gallery: [
+      "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1574923228344-3b31b36ab90b?w=800&q=80&auto=format&fit=crop",
+    ]
+  };
+
+  // CONCRETE / MASONRY
+  if (text.match(/concrete|masonry|cement|foundation|slab|driveway|sidewalk|stamped/)) return {
     hero: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1600&q=80&auto=format&fit=crop",
     gallery: [
       "https://images.unsplash.com/photo-1581094271901-8022df4466f9?w=800&q=80&auto=format&fit=crop",
@@ -204,7 +214,8 @@ function getIndustryImages(industry, services) {
     ]
   };
 
-  if (text.match(/roof|shingle|gutter|exterior/)) return {
+  // ROOFING
+  if (text.match(/roof|shingle|gutter|flashing/)) return {
     hero: "https://images.unsplash.com/photo-1632207691143-643e2a9a9361?w=1600&q=80&auto=format&fit=crop",
     gallery: [
       "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&q=80&auto=format&fit=crop",
@@ -213,16 +224,8 @@ function getIndustryImages(industry, services) {
     ]
   };
 
-  if (text.match(/landscape|lawn|garden|yard|tree|irrigation/)) return {
-    hero: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1600&q=80&auto=format&fit=crop",
-    gallery: [
-      "https://images.unsplash.com/photo-1558904541-efa843a96f01?w=800&q=80&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=800&q=80&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1574923228344-3b31b36ab90b?w=800&q=80&auto=format&fit=crop",
-    ]
-  };
-
-  if (text.match(/plumb|pipe|drain|water|hvac|heat|cool|air/)) return {
+  // PLUMBING / HVAC
+  if (text.match(/plumb|pipe|drain|water|hvac|heat|cool|air condition/)) return {
     hero: "https://images.unsplash.com/photo-1621905251189-08b45249ff78?w=1600&q=80&auto=format&fit=crop",
     gallery: [
       "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=800&q=80&auto=format&fit=crop",
@@ -231,7 +234,8 @@ function getIndustryImages(industry, services) {
     ]
   };
 
-  if (text.match(/paint|coat|finish|color|wall|interior|exterior/)) return {
+  // PAINTING
+  if (text.match(/paint|coat|stain|finish|color|wall/)) return {
     hero: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=1600&q=80&auto=format&fit=crop",
     gallery: [
       "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800&q=80&auto=format&fit=crop",
@@ -240,6 +244,7 @@ function getIndustryImages(industry, services) {
     ]
   };
 
+  // ELECTRICAL / SOLAR
   if (text.match(/electric|wire|panel|lighting|solar/)) return {
     hero: "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=1600&q=80&auto=format&fit=crop",
     gallery: [
@@ -249,7 +254,8 @@ function getIndustryImages(industry, services) {
     ]
   };
 
-  if (text.match(/remodel|renovate|kitchen|bath|flooring|tile|cabinet/)) return {
+  // REMODELING / INTERIOR
+  if (text.match(/remodel|renovate|kitchen|bath|flooring|tile|cabinet|interior/)) return {
     hero: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1600&q=80&auto=format&fit=crop",
     gallery: [
       "https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=800&q=80&auto=format&fit=crop",
@@ -258,7 +264,8 @@ function getIndustryImages(industry, services) {
     ]
   };
 
-  if (text.match(/fence|deck|patio|pergola|outdoor|wood/)) return {
+  // FENCING / DECKING
+  if (text.match(/fence|deck|patio|pergola|wood|composite/)) return {
     hero: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&q=80&auto=format&fit=crop",
     gallery: [
       "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80&auto=format&fit=crop",
@@ -267,7 +274,27 @@ function getIndustryImages(industry, services) {
     ]
   };
 
-  // Default — general construction
+  // CLEANING / PRESSURE WASHING
+  if (text.match(/clean|pressure|wash|janitorial|maid|house/)) return {
+    hero: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1600&q=80&auto=format&fit=crop",
+    gallery: [
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1600607687939-ce8a6d766163?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1581094271901-8022df4466f9?w=800&q=80&auto=format&fit=crop",
+    ]
+  };
+
+  // MOVING
+  if (text.match(/moving|mover|storage|relocation|truck/)) return {
+    hero: "https://images.unsplash.com/photo-1600518464441-9154a4dea21b?w=1600&q=80&auto=format&fit=crop",
+    gallery: [
+      "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&q=80&auto=format&fit=crop",
+    ]
+  };
+
+  // DEFAULT — general construction/contracting
   return {
     hero: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1600&q=80&auto=format&fit=crop",
     gallery: [
@@ -403,25 +430,60 @@ CLIENT:
 - Effective Date: ${today}
 
 PAGE STRUCTURE:
-1. HEADER: "${client.businessName}" on left in bold (primary color), nav link "← Back to Home" linking to index.html
+1. HEADER: "${client.businessName}" on left in bold black, nav link "← Back to Home" linking to index.html
 2. CONTENT: Clean white background, max-width 800px centered, all sections below
+3. FOOTER: Black background, white text, © ${new Date().getFullYear()} ${client.businessName} | Privacy Policy | Terms
 
-REQUIRED SECTIONS:
-- Effective Date: ${today}
-- Introduction
-- Information We Collect
-- How We Use Your Information
-- SMS / Text Messaging — include this EXACT language:
-  "No mobile information will be shared with third parties/affiliates for marketing/promotional purposes. Information sharing to subcontractors in support services, such as customer service, is permitted. All other use case categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties."
-- Third Party Sharing (state we do NOT sell or share data)
-- CCPA Rights
-- GDPR Rights  
-- Data Retention
-- Contact Us: ${client.email} | ${client.smsNumber} | ${client.address}
+REQUIRED SECTIONS — include ALL of these:
 
-3. FOOTER: same as main page — © ${new Date().getFullYear()} ${client.businessName} | Privacy Policy | Terms
+1. Effective Date: ${today}
 
-STYLING: Clean, minimal. Use ${client.primaryColor} for headings h2. System fonts. No external dependencies.
+2. Introduction
+   Brief intro about commitment to privacy.
+
+3. Information We Collect
+   - Name, email, phone number, address
+   - Usage data, browser type, IP address
+   - Cookies and tracking technologies
+
+4. SMS / Text Messaging Opt-In — include this EXACT language:
+   "By providing your phone number and checking the consent box on our website, you agree to receive SMS text messages from ${client.businessName}. You may receive marketing messages about special offers and promotions, as well as non-marketing messages including appointment reminders and service updates. No mobile information will be shared with third parties/affiliates for marketing/promotional purposes. Information sharing to subcontractors in support services, such as customer service, is permitted. All other use case categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties."
+
+5. Cookie & Tracking Practices
+   - We use cookies to improve user experience
+   - Types: essential, analytics, marketing cookies
+   - Users can disable cookies in browser settings
+   - We use Google Analytics and similar tools to track usage
+
+6. Data Security and Handling
+   - We use SSL encryption to protect data in transit
+   - Data is stored on secure servers with access controls
+   - We regularly review security practices
+   - In case of a breach, we will notify affected users within 72 hours
+
+7. How We Use Your Information
+   - To respond to inquiries and provide services
+   - To send SMS messages you have consented to
+   - To improve our website and services
+   - To comply with legal obligations
+
+8. Third Party Sharing
+   We do NOT sell, trade, or rent your personal information. We do not share mobile information with third parties for marketing purposes.
+
+9. User Rights (CCPA & GDPR)
+   - Right to access your data
+   - Right to delete your data
+   - Right to opt out of marketing
+   - California residents have additional rights under CCPA
+   - EU residents have rights under GDPR
+
+10. Data Retention
+    We retain your data only as long as necessary to provide services or as required by law.
+
+11. Contact Us
+    For privacy questions: ${client.email} | ${client.smsNumber} | ${client.address}
+
+STYLING: Clean, minimal. Black (#000) for h2 headings. System fonts. No external dependencies.
 
 Output ONLY the complete HTML — no explanation, no markdown, no code fences.`;
 
@@ -463,12 +525,18 @@ REQUIRED SECTIONS WITH EXACT LANGUAGE:
 5. Privacy Policy Link:
    "If you have any questions regarding privacy, please read our privacy policy: <a href='privacy-policy.html'>Privacy Policy</a>"
 
-6. Non-Sharing clause:
-   "No mobile information will be shared with third parties/affiliates for marketing/promotional purposes."
+6. Age Restriction
+   "You must be 18 years of age or older to opt in to receive SMS messages from ${client.businessName}. By submitting your phone number, you confirm that you are 18 years of age or older."
 
-3. FOOTER: © ${new Date().getFullYear()} ${client.businessName} | Privacy Policy | Terms & Conditions
+7. Non-Sharing clause:
+   "No mobile information will be shared with third parties/affiliates for marketing/promotional purposes. Information sharing to subcontractors in support services, such as customer service, is permitted. All other use case categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties."
 
-STYLING: Clean, minimal. Use ${client.primaryColor} for h2 headings. System fonts. No external dependencies.
+8. Privacy Policy Link:
+   "If you have any questions regarding privacy, please read our privacy policy: <a href='privacy-policy.html'>Privacy Policy</a>"
+
+3. FOOTER: Black background, white text, © ${new Date().getFullYear()} ${client.businessName} | <a href='privacy-policy.html' style='color:white'>Privacy Policy</a> | <a href='terms.html' style='color:white'>Terms & Conditions</a>
+
+STYLING: Clean, minimal. Black (#000) for h2 headings. System fonts. No external dependencies.
 
 Output ONLY the complete HTML — no explanation, no markdown, no code fences.`;
 
@@ -503,3 +571,5 @@ app.listen(PORT, () => {
   console.log(`📡 Webhook: http://localhost:${PORT}/webhook/ghl-onboarding`);
   console.log(`✅ Health: http://localhost:${PORT}/health\n`);
 });
+
+module.exports = app;
