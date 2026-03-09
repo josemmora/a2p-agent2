@@ -189,8 +189,102 @@ async function deployToVercel(slug, indexHtml, privacyHtml, termsHtml) {
   }
 }
 
+
+// ─── GET INDUSTRY IMAGES ──────────────────────────────────────────────────────
+// Hardcoded Unsplash photo IDs by industry — these direct URLs always work
+function getIndustryImages(industry, services) {
+  const text = (industry + " " + services).toLowerCase();
+
+  if (text.match(/concrete|masonry|cement|foundation|slab/)) return {
+    hero: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=1600&q=80&auto=format&fit=crop",
+    gallery: [
+      "https://images.unsplash.com/photo-1581094271901-8022df4466f9?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&q=80&auto=format&fit=crop",
+    ]
+  };
+
+  if (text.match(/roof|shingle|gutter|exterior/)) return {
+    hero: "https://images.unsplash.com/photo-1632207691143-643e2a9a9361?w=1600&q=80&auto=format&fit=crop",
+    gallery: [
+      "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1590579491624-f98f36d4c763?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&q=80&auto=format&fit=crop",
+    ]
+  };
+
+  if (text.match(/landscape|lawn|garden|yard|tree|irrigation/)) return {
+    hero: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=1600&q=80&auto=format&fit=crop",
+    gallery: [
+      "https://images.unsplash.com/photo-1558904541-efa843a96f01?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1574923228344-3b31b36ab90b?w=800&q=80&auto=format&fit=crop",
+    ]
+  };
+
+  if (text.match(/plumb|pipe|drain|water|hvac|heat|cool|air/)) return {
+    hero: "https://images.unsplash.com/photo-1621905251189-08b45249ff78?w=1600&q=80&auto=format&fit=crop",
+    gallery: [
+      "https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80&auto=format&fit=crop",
+    ]
+  };
+
+  if (text.match(/paint|coat|finish|color|wall|interior|exterior/)) return {
+    hero: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=1600&q=80&auto=format&fit=crop",
+    gallery: [
+      "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1581094271901-8022df4466f9?w=800&q=80&auto=format&fit=crop",
+    ]
+  };
+
+  if (text.match(/electric|wire|panel|lighting|solar/)) return {
+    hero: "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=1600&q=80&auto=format&fit=crop",
+    gallery: [
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1581094271901-8022df4466f9?w=800&q=80&auto=format&fit=crop",
+    ]
+  };
+
+  if (text.match(/remodel|renovate|kitchen|bath|flooring|tile|cabinet/)) return {
+    hero: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1600&q=80&auto=format&fit=crop",
+    gallery: [
+      "https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1600607687939-ce8a6d766163?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1556909172-54557c7e4fb7?w=800&q=80&auto=format&fit=crop",
+    ]
+  };
+
+  if (text.match(/fence|deck|patio|pergola|outdoor|wood/)) return {
+    hero: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&q=80&auto=format&fit=crop",
+    gallery: [
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1599619585752-c3edb42a414c?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1574923228344-3b31b36ab90b?w=800&q=80&auto=format&fit=crop",
+    ]
+  };
+
+  // Default — general construction
+  return {
+    hero: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=1600&q=80&auto=format&fit=crop",
+    gallery: [
+      "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1581094271901-8022df4466f9?w=800&q=80&auto=format&fit=crop",
+    ]
+  };
+}
+
 // ─── GENERATE LANDING PAGE ────────────────────────────────────────────────────
 async function generateLandingPage(client) {
+  const images = getIndustryImages(client.industry, client.serviceDesc);
+  client.heroImage    = images.hero;
+  client.galleryImage1 = images.gallery[0];
+  client.galleryImage2 = images.gallery[1];
+  client.galleryImage3 = images.gallery[2];
   const prompt = `You are an expert direct-response copywriter and web developer building A2P SMS compliance opt-in pages for 2026 GHL A2P registration.
 
 Generate a COMPLETE, FULLY RENDERED HTML opt-in page. Use only inline CSS — no external stylesheets except Google Fonts and Unsplash images.
@@ -236,7 +330,7 @@ PAGE STRUCTURE — build exactly this:
 
 2. HERO SECTION
    - Full width, min-height 520px
-   - Background: #000 with repeating-linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%) pattern, background-size: 60px 60px — creates a subtle dark texture
+   - Background: Use this real photo as background image: url("${client.heroImage}") center/cover no-repeat, with overlay: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7))
    - Centered white text, padding 100px 40px
    - Top badge: small uppercase "LIMITED TIME OFFER" text, white border 1px, padding 6px 16px, letter-spacing 2px, font-size 11px
    - Large H1: the irresistible offer headline (white, bold, 48px, line-height 1.2, max-width 700px, margin auto)
@@ -248,12 +342,13 @@ PAGE STRUCTURE — build exactly this:
    - 4 items centered in a row with flexbox: "⭐ 5-Star Rated" | "✓ Licensed & Insured" | "✓ Free Estimates" | "✓ Local Experts"
    - Black text, font-size 13px, font-weight 600, padding 20px 0, gap 40px
 
-4. SERVICE SHOWCASE STRIP
-   - 3 equal-width dark boxes side by side using flexbox
-   - Box colors: #111, #1a1a1a, #222
-   - Each box: height 200px, display flex, align-items center, justify-content center, flex-direction column
-   - Inside each box: large emoji (pick relevant ones for ${client.industry}), white bold service name, small gray description
-   - Pick 3 main services from: ${client.serviceDesc} and showcase them here
+4. PHOTO GALLERY STRIP
+   - 3 equal-width real photos side by side using flexbox, no gap
+   - Image 1: url("${client.galleryImage1}") center/cover no-repeat, height 240px
+   - Image 2: url("${client.galleryImage2}") center/cover no-repeat, height 240px
+   - Image 3: url("${client.galleryImage3}") center/cover no-repeat, height 240px
+   - Each div uses background-image, background-size: cover, background-position: center
+   - No text overlay needed — pure visual impact
 
 5. OPT-IN FORM SECTION
    - White background, max-width 580px centered, padding 48px 40px
@@ -408,5 +503,3 @@ app.listen(PORT, () => {
   console.log(`📡 Webhook: http://localhost:${PORT}/webhook/ghl-onboarding`);
   console.log(`✅ Health: http://localhost:${PORT}/health\n`);
 });
-
-module.exports = app;
