@@ -217,10 +217,15 @@ Based on the business services "${client.serviceDesc}" and industry "${client.in
 - Landscaping: "Transform Your Yard This Season — Free Design Consultation Included"
 Make it specific to their actual services. Use urgency. Make it feel like a real deal.
 
-STOCK IMAGES — use Unsplash source URLs based on their industry:
-- Pick 1 hero image relevant to "${client.industry}" using: https://source.unsplash.com/1600x900/?${client.industry.toLowerCase().replace(/\s+/g, ',')}
-- Pick 3 small gallery images showing their work type using: https://source.unsplash.com/600x400/?${client.industry.toLowerCase().replace(/\s+/g, ',')}
-These are free, no API key needed.
+VISUAL SECTIONS — use CSS only, no external images needed:
+
+Hero background: Pure black (#000) with a subtle diagonal stripe pattern using CSS linear-gradient repeating pattern. Looks premium and always renders.
+
+Gallery section: 3 side-by-side dark boxes using different dark shades (#111, #1a1a1a, #222). Each box is 220px tall with:
+- A large relevant emoji centered (pick based on industry — concrete: 🏗️, roofing: 🏠, landscaping: 🌿, plumbing: 🔧, painting: 🖌️, electrical: ⚡)
+- White bold service name below it
+- Small gray description text
+These act as visual service cards and always look great.
 
 PAGE STRUCTURE — build exactly this:
 
@@ -230,23 +235,25 @@ PAGE STRUCTURE — build exactly this:
    - Navigation on RIGHT: "Privacy Policy" | "Terms" — small gray links to privacy-policy.html and terms.html
 
 2. HERO SECTION
-   - Full width, min-height 500px
-   - Background: Unsplash image for their industry with dark overlay (rgba 0,0,0,0.65)
-   - Centered white text
-   - Top badge: "LIMITED TIME OFFER" in white uppercase small text with border
-   - Large H1: the irresistible offer headline you crafted (white, bold, 48px)
-   - Subheadline: brief description of their services (white, 20px, opacity 0.9)
-   - CTA button: white background, black text, "Claim Your Offer →" bold, border-radius 4px, padding 16px 40px
+   - Full width, min-height 520px
+   - Background: #000 with repeating-linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%) pattern, background-size: 60px 60px — creates a subtle dark texture
+   - Centered white text, padding 100px 40px
+   - Top badge: small uppercase "LIMITED TIME OFFER" text, white border 1px, padding 6px 16px, letter-spacing 2px, font-size 11px
+   - Large H1: the irresistible offer headline (white, bold, 48px, line-height 1.2, max-width 700px, margin auto)
+   - Subheadline: brief services description (white, 18px, opacity 0.8, margin-top 16px)
+   - CTA button: white background, black text, bold, "Claim Your Offer →", border-radius 4px, padding 16px 40px, margin-top 32px, font-size 16px
 
 3. TRUST BAR
-   - White background, border-bottom 1px #e0e0e0
-   - 4 items centered in a row: "⭐ 5-Star Rated" | "✓ Licensed & Insured" | "✓ Free Estimates" | "✓ Local Experts"
-   - Black text, font-size 14px, padding 20px
+   - White background, border-top and border-bottom 1px #e0e0e0
+   - 4 items centered in a row with flexbox: "⭐ 5-Star Rated" | "✓ Licensed & Insured" | "✓ Free Estimates" | "✓ Local Experts"
+   - Black text, font-size 13px, font-weight 600, padding 20px 0, gap 40px
 
-4. PHOTO STRIP
-   - 3 equal-width Unsplash images side by side showing their work
-   - Each image height 220px, object-fit cover
-   - No text needed — just visual proof of their work quality
+4. SERVICE SHOWCASE STRIP
+   - 3 equal-width dark boxes side by side using flexbox
+   - Box colors: #111, #1a1a1a, #222
+   - Each box: height 200px, display flex, align-items center, justify-content center, flex-direction column
+   - Inside each box: large emoji (pick relevant ones for ${client.industry}), white bold service name, small gray description
+   - Pick 3 main services from: ${client.serviceDesc} and showcase them here
 
 5. OPT-IN FORM SECTION
    - White background, max-width 580px centered, padding 48px 40px
