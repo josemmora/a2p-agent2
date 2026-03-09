@@ -327,7 +327,7 @@ async function callClaude(prompt) {
     "https://api.anthropic.com/v1/messages",
     {
       model:      "claude-sonnet-4-20250514",
-      max_tokens: 4096,
+      max_tokens: 8000,
       messages:   [{ role: "user", content: prompt }],
     },
     {
