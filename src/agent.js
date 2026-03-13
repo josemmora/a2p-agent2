@@ -381,17 +381,34 @@ PAGE STRUCTURE — build exactly this:
    - White background, max-width 580px centered, padding 48px 40px
    - Black H2: "Claim Your Free Consultation"
    - Gray subtext: "Fill out the form below and we'll contact you within 24 hours."
-   - Fields (all required, black border on focus): First Name, Last Name, Phone Number, Email Address
-   - TWO SEPARATE CONSENT CHECKBOXES (NOT pre-checked, both optional):
 
-   CHECKBOX 1 — Marketing:
-   "I consent to receive marketing text messages, about special offers, discounts, and service updates, from ${client.businessName} at the phone number provided. Message frequency may vary. Message & data rates may apply. Text HELP for assistance, reply STOP to opt out."
+   FIELDS IN THIS EXACT ORDER:
+   - First Name (no asterisk — optional)
+   - Last Name (no asterisk — optional)
+   - Phone * (required — show red asterisk)
+   - Email * (required — show red asterisk)
 
-   CHECKBOX 2 — Non-Marketing:
-   "I consent to receive non-marketing text messages from ${client.businessName} about appointment reminders, service updates, and account notifications. Message frequency may vary, message & data rates may apply. Text HELP for assistance, reply STOP to opt out."
+   TWO SEPARATE CONSENT CHECKBOXES — BOTH UNCHECKED BY DEFAULT — BOTH OPTIONAL:
 
-   - Submit button: full width, black background, white text, "Submit My Request →", padding 16px, border-radius 4px
-   - Below button: small gray text "Consent is not a condition of any purchase."
+   CHECKBOX 1 — Non-Marketing (show this FIRST):
+   Look at services: "${client.serviceDesc}" and industry: "${client.industry}" and pick a specific use case.
+   Examples by industry:
+   - Concrete/Masonry: "appointment reminders, project updates, and service notifications"
+   - Landscaping/Turf: "quote follow-ups, scheduling confirmations, and project status updates"
+   - Roofing: "inspection reminders, project updates, and warranty notifications"
+   - Painting: "estimate confirmations, scheduling reminders, and project completion notices"
+   - General: "appointment reminders, service updates, and account notifications"
+   Write: "I consent to receive non-marketing text messages from ${client.businessName} regarding [SPECIFIC USE CASE FROM ABOVE]. Message frequency varies, message & data rates may apply. Reply HELP for assistance, reply STOP to opt out."
+
+   CHECKBOX 2 — Marketing (show this SECOND, add small italic label above: "For promotional messages (optional)"):
+   "I consent to receive marketing text messages from ${client.businessName} regarding special offers, discounts, and promotional updates. Message frequency varies, message & data rates may apply. Reply HELP for assistance, reply STOP to opt out."
+
+   Use <input type="checkbox"> with NO "checked" attribute on either checkbox.
+
+   - Submit button: full width, black background, white text "Submit", padding 16px, border-radius 4px, margin-top 24px
+   - DIRECTLY BELOW submit button — centered, small text:
+     <a href="privacy-policy.html">Privacy Policy</a> | <a href="terms.html">Terms and Conditions</a>
+     These links MUST appear directly under the button, hyperlinked, visible. This is mandatory per GHL A2P requirements.
 
 6. FOOTER
    - Black background, white text, padding 40px
@@ -508,31 +525,33 @@ PAGE STRUCTURE:
 1. HEADER: "${client.businessName}" on left in bold (primary color), nav link "← Back to Home" linking to index.html
 2. CONTENT: Clean white background, max-width 800px centered
 
-REQUIRED SECTIONS WITH EXACT LANGUAGE:
+REQUIRED CONTENT — follow this EXACT structure from GHL's official A2P doc:
 
-1. Program Description
-   - Business name, what SMS messages will be sent
+Start with the business name as a heading: ${client.businessName}
 
-2. Opt-Out clause — use this EXACT text:
-   "You can cancel the SMS service at any time. Just text STOP to ${client.smsNumber}. After you send the SMS message STOP to us, we will send you an SMS message to confirm that you have been unsubscribed. After this, you will no longer receive SMS messages from us. If you want to join again, just sign up as you did the first time and we will start sending SMS messages to you again. If you are experiencing issues with the messaging program you can reply with the keyword HELP for more assistance, or you can get help directly at ${client.email}."
+Then these bullet points in this EXACT order:
 
-3. Carrier Liability — use this EXACT text:
-   "Carriers are not liable for delayed or undelivered messages."
+BULLET 1 — Business description (customize based on their services):
+Write a brief description of the kinds of messages users can expect to receive. Base it on: ${client.serviceDesc}. Example: "We send appointment reminders, project updates, promotional offers, and service notifications related to our [industry] services."
 
-4. Message Frequency — use this EXACT text:
-   "As always, message and data rates may apply for any messages sent to you from us and to us from you. You will receive daily messages. If you have any questions about your text plan or data plan, it is best to contact your wireless provider."
+BULLET 2 — Opt-out (use this EXACT text):
+"You can cancel the SMS service at any time. Just text "STOP" to ${client.smsNumber}. After you send the SMS message "STOP" to us, we will send you an SMS message to confirm that you have been unsubscribed. After this, you will no longer receive SMS messages from us. If you want to join again, just sign up as you did the first time and we will start sending SMS messages to you again."
 
-5. Privacy Policy Link:
-   "If you have any questions regarding privacy, please read our privacy policy: <a href='privacy-policy.html'>Privacy Policy</a>"
+BULLET 3 — Support (use this EXACT text):
+"If you are experiencing issues with the messaging program you can reply with the keyword HELP for more assistance, or you can get help directly at ${client.email}."
 
-6. Age Restriction
-   "You must be 18 years of age or older to opt in to receive SMS messages from ${client.businessName}. By submitting your phone number, you confirm that you are 18 years of age or older."
+BULLET 4 — Carrier liability (use this EXACT text):
+"Carriers are not liable for delayed or undelivered messages."
 
-7. Non-Sharing clause:
-   "No mobile information will be shared with third parties/affiliates for marketing/promotional purposes. Information sharing to subcontractors in support services, such as customer service, is permitted. All other use case categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties."
+BULLET 5 — Message frequency (use this EXACT text):
+"As always, message and data rates may apply for any messages sent to you from us and to us from you. You will receive daily messages. If you have any questions about your text plan or data plan, it is best to contact your wireless provider."
 
-8. Privacy Policy Link:
-   "If you have any questions regarding privacy, please read our privacy policy: <a href='privacy-policy.html'>Privacy Policy</a>"
+BULLET 6 — Privacy policy link (use this EXACT text):
+"If you have any questions regarding privacy, please read our privacy policy: [link to privacy-policy.html that says Privacy Policy]"
+
+ALSO ADD after the bullets:
+- Age Restriction section: "You must be 18 years of age or older to opt in to receive SMS messages from ${client.businessName}."
+- Non-sharing clause: "No mobile information will be shared with third parties/affiliates for marketing/promotional purposes. Information sharing to subcontractors in support services, such as customer service, is permitted. All other use case categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties."
 
 3. FOOTER: Black background, white text, © ${new Date().getFullYear()} ${client.businessName} | <a href='privacy-policy.html' style='color:white'>Privacy Policy</a> | <a href='terms.html' style='color:white'>Terms & Conditions</a>
 
