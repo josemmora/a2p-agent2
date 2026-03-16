@@ -420,15 +420,15 @@ PAGE SECTIONS:
    - Email * (required — red asterisk)
    - Message (textarea, optional, placeholder "Tell us about your project...")
 
-   TWO CONSENT CHECKBOXES — both REQUIRED (must check to submit), both UNCHECKED by default:
-   Add required attribute to both checkboxes.
+   TWO CONSENT CHECKBOXES — both OPTIONAL, both UNCHECKED by default:
+   Do NOT add required attribute to either checkbox. No asterisk on either.
 
    CHECKBOX 1 — Non-Marketing (FIRST):
    Based on the business services pick a specific use case (appointment reminders, project updates, etc.)
-   "I consent to receive non-marketing text messages from ${client.businessName} regarding [SPECIFIC USE CASE based on their industry]. Message frequency varies, message & data rates may apply. Reply HELP for assistance, reply STOP to opt out." *
+   "I consent to receive non-marketing text messages from ${client.businessName} regarding [SPECIFIC USE CASE based on their industry]. Message frequency varies, message & data rates may apply. Reply HELP for assistance, reply STOP to opt out."
 
    CHECKBOX 2 — Marketing (SECOND):
-   "I consent to receive marketing text messages from ${client.businessName} regarding special offers, discounts, and promotional updates. Message frequency varies, message & data rates may apply. Reply HELP for assistance, reply STOP to opt out." *
+   "I consent to receive marketing text messages from ${client.businessName} regarding special offers, discounts, and promotional updates. Message frequency varies, message & data rates may apply. Reply HELP for assistance, reply STOP to opt out."
 
    - Submit button: full width, black bg, white text, "Submit", padding 16px, border-radius 4px
    - form action="thank-you.html" method="GET"
