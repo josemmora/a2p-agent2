@@ -315,7 +315,7 @@ PAGE SECTIONS:
 7. FOOTER — inject exactly as provided
 
 STYLING: Black and white only, system fonts, line-height 1.7, fully mobile responsive.
-Output ONLY the complete HTML — no explanation, no markdown, no code fences.\`;
+Output ONLY the complete HTML — no explanation, no markdown, no code fences.`;
 
   return callClaude(prompt);
 }
