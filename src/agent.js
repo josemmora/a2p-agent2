@@ -416,7 +416,7 @@ PAGE SECTIONS:
    Fields in this exact order:
    - First Name (optional, no asterisk)
    - Last Name (optional, no asterisk)
-   - Phone * (required — red asterisk)
+   - Phone (optional, no asterisk)
    - Email * (required — red asterisk)
    - Message (textarea, optional, placeholder "Tell us about your project...")
 
