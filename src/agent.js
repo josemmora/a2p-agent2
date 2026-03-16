@@ -112,7 +112,7 @@ function buildNavFooter(client) {
     <a href="about.html" style="color:#333;text-decoration:none;font-size:14px;">About</a>
     <a href="services.html" style="color:#333;text-decoration:none;font-size:14px;">Services</a>
     <a href="contact.html" style="color:#333;text-decoration:none;font-size:14px;">Contact</a>
-    <a href="index.html#opt-in" style="background:#000;color:#fff;padding:10px 20px;border-radius:4px;text-decoration:none;font-size:14px;font-weight:600;">Get a Quote</a>
+    <a href="contact.html" style="background:#000;color:#fff;padding:10px 20px;border-radius:4px;text-decoration:none;font-size:14px;font-weight:600;">Get a Quote</a>
   </div>
 </nav>`;
 
@@ -155,7 +155,7 @@ function buildNavFooter(client) {
 
 // ─── GENERATE HOME PAGE ───────────────────────────────────────────────────────
 async function generateHomePage(client) {
-  const prompt = `You are an expert web developer. Generate a complete HTML home page for a business website.
+  const prompt = `You are an expert web developer and copywriter. Generate a complete, professional HTML home page modeled after high-end contractor websites like equityconstructionremodeling.com. This must look and feel like a real, established company website — editorial, clean, and credibility-driven.
 
 CLIENT:
 - Business: ${client.businessName}
@@ -170,81 +170,89 @@ CLIENT:
 - Gallery Image 2: ${client.galleryImage2}
 - Gallery Image 3: ${client.galleryImage3}
 
-INJECT THIS EXACT NAV HTML at the top of body:
+INJECT THIS EXACT NAV at top of body:
 ${client.nav}
 
-INJECT THIS EXACT FOOTER HTML at the bottom of body:
+INJECT THIS EXACT FOOTER at bottom of body:
 ${client.footer}
 
-PAGE SECTIONS — build in this order:
+PAGE SECTIONS — build in this exact order:
 
-1. NAV — inject the nav HTML above exactly as provided
+1. NAV — inject exactly as provided
 
 2. HERO SECTION
-   - Full width, min-height 520px
-   - background-image: url("${client.heroImage}") with overlay linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65))
-   - background-size: cover, background-position: center
-   - Centered white text, padding 120px 40px
-   - Small badge: "LIMITED TIME OFFER" white border uppercase
-   - H1: craft an irresistible offer headline based on "${client.serviceDesc}" — specific, benefit-driven, includes a dollar amount discount or free offer
-   - Subheadline: brief description of their services
-   - Two buttons side by side: "Claim Your Offer →" (white bg, black text) and "Learn More" (transparent, white border, white text) linking to about.html
+   - Full width, min-height 620px
+   - background-image: url("${client.heroImage}") center/cover no-repeat, with overlay: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55))
+   - White text, padding: 160px 64px, max-width 800px (left-aligned, not centered)
+   - NO discount offers, NO badges, NO urgency language
+   - Small uppercase eyebrow text above H1: industry category in gray-white, letter-spacing 3px, font-size 12px
+   - H1: A professional positioning statement — NOT a sales pitch. Use "${client.tagline}" if available, or craft something like "Built on Quality. Delivered with Integrity." or "Expert ${client.industry} for Homeowners Who Value Results." Make it sound premium and trustworthy.
+   - Paragraph: 2 clear sentences describing exactly what they do and who they serve. Write like a professional company bio, not ad copy.
+   - Single CTA button: "Request a Consultation" — white bg, black text, bold, padding 16px 40px, border-radius 2px, linking to contact.html
 
-3. TRUST BAR
-   - White background, border-bottom 1px #e0e0e0
-   - 4 items: "⭐ 5-Star Rated" | "✓ Licensed & Insured" | "✓ Free Estimates" | "✓ Locally Owned"
-   - Centered flex row, padding 20px, font-size 13px, font-weight 600
+3. INTRO / ABOUT STRIP
+   - White background, max-width 1000px centered, padding 100px 32px
+   - Two columns side by side (60/40 split):
+   LEFT: 
+     - Small uppercase label "WHO WE ARE" gray, letter-spacing 2px, margin-bottom 16px
+     - H2: "A Trusted ${client.industry} Partner" black, font-size 36px
+     - 2-3 paragraphs of professional editorial copy about the company — who they are, their approach, what makes them different. Write like a real company story. Mention their industry, commitment to quality, and client experience. No fluff, no hype.
+     - "Learn More About Us →" text link to about.html
+   RIGHT:
+     - background-image: url("${client.galleryImage1}") center/cover, height 400px, border-radius 4px
 
-4. SERVICES PREVIEW
-   - White background, padding 80px 32px
-   - H2: "Our Services" centered black
-   - 3 service cards in a row using flexbox
-   - Each card: white bg, border 1px #e0e0e0, border-radius 8px, padding 32px, text center
-   - Pick 3 main services from "${client.serviceDesc}"
-   - Each card: bold service name, short description, "Learn More →" link to services.html
-   - Hover: box-shadow 0 4px 20px rgba(0,0,0,0.1)
+4. SERVICES SECTION
+   - Light gray background (#f7f7f7), padding 100px 32px
+   - Small uppercase label "WHAT WE DO" gray, letter-spacing 2px, centered
+   - H2: "Our Services" black, font-size 40px, centered, margin-bottom 8px
+   - Subtext: one sentence about their service quality, centered, color #666
+   - Parse "${client.serviceDesc}" and create 3-6 service cards in a responsive grid (3 columns desktop, 2 tablet, 1 mobile)
+   - Each card: white bg, padding 40px, border-radius 4px, border-bottom 3px solid #000
+   - Bold H3 service name, 2 sentence professional description
+   - "View Service →" text link to services.html, black, underlined
+   - Hover: box-shadow 0 4px 24px rgba(0,0,0,0.08), transform translateY(-2px), transition 0.2s
 
-5. PHOTO GALLERY
-   - 3 photos side by side, no gap
-   - Image 1: background-image url("${client.galleryImage1}"), height 260px, background-size cover, background-position center, flex:1
-   - Image 2: background-image url("${client.galleryImage2}"), height 260px, background-size cover, background-position center, flex:1
-   - Image 3: background-image url("${client.galleryImage3}"), height 260px, background-size cover, background-position center, flex:1
-   - Display as flex row
+5. WHY CHOOSE US SECTION
+   - White background, max-width 1000px centered, padding 100px 32px
+   - Small uppercase label "WHY CHOOSE US" gray, letter-spacing 2px
+   - H2: "Why Clients Choose ${client.businessName}" black, font-size 40px, margin-bottom 48px
+   - 6 numbered reasons in a 2-column layout — styled like Equity Construction with a number, horizontal rule, bold title, and description
+   - Each reason: large number (1-6) in gray, thin hr line, bold H3 title, 1-2 sentence explanation
+   - Generate reasons specific to "${client.industry}" — examples: "One Accountable Team", "Transparent Pricing", "Licensed & Insured", "On-Time Delivery", "Quality Materials Only", "Clear Communication Throughout"
+   - Make each reason sound specific and credible, not generic
 
-6. OPT-IN FORM SECTION (id="opt-in")
-   - Light gray background (#f9f9f9), padding 80px 32px
-   - Max-width 580px centered white card, border-radius 8px, padding 48px, box-shadow 0 2px 20px rgba(0,0,0,0.08)
-   - H2: "Claim Your Free Consultation" black centered
-   - Gray subtext: "Fill out the form below and we'll contact you within 24 hours."
+6. PHOTO STRIP
+   - Full width, 3 photos side by side, no gap
+   - Each: flex:1, height 320px, background-size cover, background-position center
+   - Image 1: url("${client.galleryImage1}")
+   - Image 2: url("${client.galleryImage2}")
+   - Image 3: url("${client.galleryImage3}")
 
-   FIELDS IN ORDER:
-   - First Name (optional, no asterisk)
-   - Last Name (optional, no asterisk)
-   - Phone * (required)
-   - Email * (required)
+7. SERVICE AREAS SECTION
+   - Light gray background (#f7f7f7), padding 80px 32px, text center
+   - Small uppercase label "WHERE WE WORK" gray
+   - H2: "Serving [extract city/region from address: ${client.address}] and Surrounding Areas" black
+   - Display the city/region from their address plus 4-6 surrounding cities as pill-style tags
+   - Each tag: white bg, border 1px #e0e0e0, border-radius 100px, padding 10px 24px, font-size 14px, display inline-block, margin 6px
+   - Subtext: "Contact us to confirm service availability in your area."
 
-   CHECKBOX 1 — Non-Marketing (FIRST, unchecked, optional):
-   Based on "${client.serviceDesc}" and "${client.industry}" pick specific use case (appointment reminders, project updates, etc.)
-   "I consent to receive non-marketing text messages from ${client.businessName} regarding [SPECIFIC USE CASE]. Message frequency varies, message & data rates may apply. Reply HELP for assistance, reply STOP to opt out."
+8. CTA SECTION
+   - Black background, white text, padding 100px 32px, text center
+   - H2: "Ready to Get Started?" white, font-size 44px
+   - Subtext: "Reach out today to discuss your project. Free consultations available." color #aaa
+   - Button: white bg, black text, bold, "Request a Consultation →", padding 18px 48px, border-radius 2px, linking to contact.html
 
-   CHECKBOX 2 — Marketing (SECOND, unchecked, optional):
-   "I consent to receive marketing text messages from ${client.businessName} regarding special offers, discounts, and promotional updates. Message frequency varies, message & data rates may apply. Reply HELP for assistance, reply STOP to opt out."
+9. FOOTER — inject exactly as provided
 
-   - Submit button: full width black background white text "Submit" padding 16px
-   - form action="thank-you.html" method="GET" so clicking submit goes to thank-you page
-   - DIRECTLY BELOW submit button centered:
-     <a href="privacy-policy.html">Privacy Policy</a> | <a href="terms.html">Terms and Conditions</a>
-
-7. FOOTER — inject the footer HTML above exactly as provided
-
-STYLING:
-- Font: system fonts -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
-- Black and white design only — #000, #fff, #333, #666, #aaa, #e0e0e0, #f9f9f9
-- All inputs: border 1px solid #ddd, padding 12px, border-radius 4px, width 100%, box-sizing border-box, font-size 16px
-- Input focus: border-color #000, outline none
-- Checkbox labels: font-size 13px, line-height 1.6, color #444, margin-bottom 16px
-- Fully mobile responsive — stack on mobile using @media (max-width: 768px)
-- Nav hamburger menu on mobile
+STYLING RULES:
+- Font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif
+- Black and white ONLY: #000, #111, #222, #333, #666, #aaa, #e0e0e0, #f7f7f7, #fff
+- Line-height: 1.7 for all body text — makes it feel premium
+- Section headings: font-size 40px, font-weight 700, letter-spacing -0.5px
+- Body text: font-size 16px, color #333
+- NO opt-in form anywhere on this page
+- Fully mobile responsive — @media (max-width: 768px): stack all columns, single card column, reduce heading to 28px
+- All transitions: transition: all 0.2s ease
 
 Output ONLY the complete HTML — no explanation, no markdown, no code fences.`;
 
@@ -253,7 +261,7 @@ Output ONLY the complete HTML — no explanation, no markdown, no code fences.`;
 
 // ─── GENERATE ABOUT PAGE ──────────────────────────────────────────────────────
 async function generateAboutPage(client) {
-  const prompt = `Generate a complete HTML About Us page for a business website.
+  const prompt = `Generate a complete, professional HTML About Us page modeled after high-end contractor websites. Editorial tone — clear, credible, no hype.
 
 CLIENT:
 - Business: ${client.businessName}
@@ -262,6 +270,8 @@ CLIENT:
 - Phone: ${client.smsNumber}
 - Email: ${client.email}
 - Address: ${client.address}
+- Gallery Image 1: ${client.galleryImage1}
+- Gallery Image 2: ${client.galleryImage2}
 
 INJECT THIS EXACT NAV at top of body:
 ${client.nav}
@@ -274,31 +284,38 @@ PAGE SECTIONS:
 1. NAV — inject exactly as provided
 
 2. PAGE HERO
-   - Black background, white text, padding 80px 32px, text center
-   - H1: "About ${client.businessName}"
-   - Subtext: "Learn more about who we are and what drives us"
+   - Black background, white text, padding 120px 64px, text left, max-width 700px
+   - Small uppercase eyebrow: "ABOUT US" color #aaa, letter-spacing 3px, font-size 12px
+   - H1: "About ${client.businessName}" white, font-size 52px
+   - Subtext: one clear sentence about who they are, color #aaa
 
-3. OUR STORY
-   - White background, max-width 900px centered, padding 80px 32px
-   - H2: "Our Story" black
-   - 2 columns: left text, right image (use ${client.galleryImage1} as background div, height 350px, border-radius 8px)
-   - Write a compelling 3-4 paragraph story about a ${client.industry} business — mention expertise, local roots, customer commitment
+3. WHO WE ARE
+   - White background, max-width 1100px centered, padding 100px 32px
+   - Two columns 60/40 split, gap 64px:
+   LEFT: small label "OUR STORY", H2 "Built on Experience. Driven by Quality.", 3-4 editorial paragraphs about a ${client.industry} business, link to services.html
+   RIGHT: background-image url("${client.galleryImage1}"), height 440px, background-size cover, border-radius 2px
 
-4. WHY CHOOSE US
-   - Gray background (#f9f9f9), padding 80px 32px
-   - H2: "Why Choose Us" centered
-   - 4 value cards in a 2x2 grid: "✓ Licensed & Insured", "✓ Free Estimates", "✓ Locally Owned", "✓ 5-Star Service"
-   - Each card: white bg, padding 32px, border-radius 8px, bold title, short description
+4. OUR VALUES
+   - Gray background (#f7f7f7), padding 100px 32px, centered
+   - Small uppercase "OUR VALUES", H2 "What We Stand For", 3 value cards side by side
+   - Each: white bg, padding 48px, border-top 3px solid #000, bold H3, 2 sentence description
+   - Generate 3 specific values for ${client.industry}
 
-5. CTA SECTION
-   - Black background, white text, padding 80px 32px, text center
-   - H2: "Ready to Get Started?"
-   - Button: white bg, black text, "Get a Free Quote →" linking to index.html#opt-in
+5. WHY CHOOSE US
+   - White background, max-width 1000px centered, padding 100px 32px
+   - H2 "Why Clients Choose ${client.businessName}", 6 numbered items in 2-column grid
+   - Each: large gray number, thin hr, bold H3, 1-2 sentence description
+   - Generate 6 specific reasons for ${client.industry}
 
-6. FOOTER — inject exactly as provided
+6. CTA SECTION
+   - Black background, padding 100px 32px, text center
+   - H2 "Let us Work Together" white, subtext color #aaa
+   - Button: white bg, black text, "Request a Consultation" linking to contact.html
 
-STYLING: Black and white only, system fonts, mobile responsive.
-Output ONLY the complete HTML — no explanation, no markdown, no code fences.`;
+7. FOOTER — inject exactly as provided
+
+STYLING: Black and white only, system fonts, line-height 1.7, fully mobile responsive.
+Output ONLY the complete HTML — no explanation, no markdown, no code fences.\`;
 
   return callClaude(prompt);
 }
@@ -396,10 +413,27 @@ PAGE SECTIONS:
    - Each item with a simple icon label (📞 Phone, ✉️ Email, 📍 Address, 🕐 Hours)
 
    RIGHT COLUMN — Contact Form:
-   - Fields: First Name, Last Name, Phone *, Email *, Message (textarea)
-   - Submit button: black bg, white text, "Send Message", full width
+   Fields in this exact order:
+   - First Name (optional, no asterisk)
+   - Last Name (optional, no asterisk)
+   - Phone * (required — red asterisk)
+   - Email * (required — red asterisk)
+   - Message (textarea, optional, placeholder "Tell us about your project...")
+
+   TWO CONSENT CHECKBOXES — both REQUIRED (must check to submit), both UNCHECKED by default:
+   Add required attribute to both checkboxes.
+
+   CHECKBOX 1 — Non-Marketing (FIRST):
+   Based on the business services pick a specific use case (appointment reminders, project updates, etc.)
+   "I consent to receive non-marketing text messages from ${client.businessName} regarding [SPECIFIC USE CASE based on their industry]. Message frequency varies, message & data rates may apply. Reply HELP for assistance, reply STOP to opt out." *
+
+   CHECKBOX 2 — Marketing (SECOND):
+   "I consent to receive marketing text messages from ${client.businessName} regarding special offers, discounts, and promotional updates. Message frequency varies, message & data rates may apply. Reply HELP for assistance, reply STOP to opt out." *
+
+   - Submit button: full width, black bg, white text, "Submit", padding 16px, border-radius 4px
    - form action="thank-you.html" method="GET"
-   - Below button: <a href="privacy-policy.html">Privacy Policy</a> | <a href="terms.html">Terms</a>
+   - DIRECTLY BELOW submit button centered small text:
+     <a href="privacy-policy.html">Privacy Policy</a> | <a href="terms.html">Terms and Conditions</a>
 
 4. FOOTER — inject exactly as provided
 
