@@ -772,22 +772,27 @@ function getIndustryImages(industry, services) {
 
 // ─── CLAUDE API CALL ──────────────────────────────────────────────────────────
 async function callClaude(prompt) {
-  const response = await axios.post(
-    "https://api.anthropic.com/v1/messages",
-    {
-      model:      "claude-sonnet-4-6",
-      max_tokens: 8000,
-      messages:   [{ role: "user", content: prompt }],
-    },
-    {
-      headers: {
-        "x-api-key":         ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type":      "application/json",
+  try {
+    const response = await axios.post(
+      "https://api.anthropic.com/v1/messages",
+      {
+        model:      "claude-sonnet-4-6",
+        max_tokens: 8000,
+        messages:   [{ role: "user", content: prompt }],
       },
-    }
-  );
-  return response.data.content[0].text;
+      {
+        headers: {
+          "x-api-key":         ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "content-type":      "application/json",
+        },
+      }
+    );
+    return response.data.content[0].text;
+  } catch (err) {
+    console.error("❌ Claude API error:", JSON.stringify(err.response?.data || err.message, null, 2));
+    throw err;
+  }
 }
 
 // ─── HEALTH CHECK ─────────────────────────────────────────────────────────────
