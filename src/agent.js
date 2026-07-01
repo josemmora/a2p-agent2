@@ -599,7 +599,6 @@ async function deployToVercel(slug, pages) {
         files,
         projectSettings: { framework: null, buildCommand: null, outputDirectory: null },
         target: "production",
-        public: true,
       },
       { headers: { Authorization: `Bearer ${VERCEL_TOKEN}`, "Content-Type": "application/json" } }
     );
