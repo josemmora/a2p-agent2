@@ -776,7 +776,7 @@ async function callClaude(prompt) {
   const response = await axios.post(
     "https://api.anthropic.com/v1/messages",
     {
-      model:      "claude-sonnet-4-20250514",
+      model:      "claude-sonnet-4-6",
       max_tokens: 8000,
       messages:   [{ role: "user", content: prompt }],
     },
